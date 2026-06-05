@@ -193,16 +193,23 @@
       <div style="font-size:10px;font-weight:800;color:var(--t2);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px;">Sistema de puntos</div>
       <div style="display:flex;flex-direction:column;gap:7px;">
         <div style="display:flex;align-items:center;gap:10px;font-size:12px;">
-          <span style="background:rgba(212,168,83,0.15);color:var(--gold-lt);border-radius:6px;padding:2px 8px;font-weight:700;font-size:11px;min-width:40px;text-align:center;">3 pts</span>
+          <span style="background:rgba(212,168,83,0.15);color:var(--gold-lt);border-radius:6px;padding:2px 8px;font-weight:700;font-size:11px;min-width:40px;text-align:center;">5 pts</span>
           <span style="color:var(--t2);">Marcador exacto</span>
         </div>
         <div style="display:flex;align-items:center;gap:10px;font-size:12px;">
-          <span style="background:rgba(52,199,123,0.12);color:var(--green);border-radius:6px;padding:2px 8px;font-weight:700;font-size:11px;min-width:40px;text-align:center;">1 pt</span>
-          <span style="color:var(--t2);">Ganador o empate correcto</span>
+          <span style="background:rgba(52,199,123,0.12);color:var(--green);border-radius:6px;padding:2px 8px;font-weight:700;font-size:11px;min-width:40px;text-align:center;">3 pts</span>
+          <span style="color:var(--t2);">Ganador correcto (o empate vs empate)</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;font-size:12px;">
+          <span style="background:rgba(74,144,217,0.12);color:var(--blue-lt);border-radius:6px;padding:2px 8px;font-weight:700;font-size:11px;min-width:40px;text-align:center;">1 pt</span>
+          <span style="color:var(--t2);">Predijiste ganador, salió empate</span>
         </div>
         <div style="display:flex;align-items:center;gap:10px;font-size:12px;">
           <span style="background:rgba(232,84,84,0.1);color:var(--red);border-radius:6px;padding:2px 8px;font-weight:700;font-size:11px;min-width:40px;text-align:center;">0 pts</span>
           <span style="color:var(--t3);">No acertaste</span>
+        </div>
+        <div style="margin-top:4px;padding-top:7px;border-top:1px solid var(--bd);font-size:11px;color:var(--gold-lt);display:flex;align-items:center;gap:6px;">
+          <span>⭐</span><span>Partido final: puntos dobles (10/6/2)</span>
         </div>
       </div>
     </div>
@@ -331,9 +338,12 @@ function getLock(m) {
   return { locked: false, type: 'open', label: `${hrs}h ${mins%60}m` };
 }
 
-function calcPoints(pH, pA, rH, rA) {
-  if (pH === rH && pA === rA) return 3;
-  if (Math.sign(pH - pA) === Math.sign(rH - rA)) return 1;
+function calcPoints(pH, pA, rH, rA, isDouble = false) {
+  const m = isDouble ? 2 : 1;
+  if (pH === rH && pA === rA) return 5 * m;
+  if (Math.sign(pH - pA) === Math.sign(rH - rA)) return 3 * m;
+  if (pH === pA) return 0;         // predijiste empate, ganó alguien
+  if (rH === rA) return 1 * m;    // predijiste ganador, fue empate (consolación)
   return 0;
 }
 
@@ -534,9 +544,10 @@ function buildMatchCard(m) {
   let predBadge = '';
   if (m.is_finished && hasPred) {
     const p = pred.points || 0;
-    if (p === 3)      predBadge = `<span class="badge badge-exact">Exacto +3</span>`;
-    else if (p === 1) predBadge = `<span class="badge badge-win">Ganador +1</span>`;
-    else              predBadge = `<span class="badge badge-miss">Falló</span>`;
+    if (p >= 5)      predBadge = `<span class="badge badge-exact">Exacto +${p}</span>`;
+    else if (p >= 3) predBadge = `<span class="badge badge-win">Ganador +${p}</span>`;
+    else if (p >= 1) predBadge = `<span class="badge" style="background:rgba(74,144,217,0.12);color:var(--blue-lt);border:1px solid rgba(74,144,217,0.3);">Empate +${p}</span>`;
+    else             predBadge = `<span class="badge badge-miss">Falló</span>`;
   } else if (m.is_finished) {
     predBadge = `<span class="badge badge-miss">Sin apuesta</span>`;
   } else if (hasPred) {
@@ -594,6 +605,7 @@ function buildMatchCard(m) {
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
         ${m.group_name ? `<span class="badge badge-group">${m.group_name}</span>` : ''}
         ${m.phase !== 'Fase de Grupos' ? `<span class="badge badge-group">${m.phase}</span>` : ''}
+        ${m.is_double_points ? `<span class="badge" style="background:rgba(212,168,83,0.15);color:var(--gold-lt);border:1px solid rgba(212,168,83,0.35);">⭐ Doble</span>` : ''}
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
         ${lockBadge}
@@ -789,10 +801,14 @@ function renderAdmin() {
         </select>
       </div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
       <div><label>Grupo (opcional)</label><input type="text" id="addGroup" class="input" placeholder="ej: Grupo A" /></div>
       <div><label>Sede (opcional)</label><input type="text" id="addVenue" class="input" placeholder="ej: Dallas, TX" /></div>
     </div>
+    <label style="display:flex;align-items:center;gap:8px;margin-bottom:14px;cursor:pointer;text-transform:none;font-size:13px;font-weight:600;color:var(--gold-lt);">
+      <input type="checkbox" id="addDouble" style="width:16px;height:16px;accent-color:var(--gold);cursor:pointer;" />
+      ⭐ Partido final (puntos dobles: 10 / 6 / 2)
+    </label>
     <button onclick="addMatch()" class="btn btn-primary">+ Agregar</button>
   </div>
 
@@ -828,6 +844,7 @@ function renderAdmin() {
             </div>
             <div style="font-size:10px;color:var(--t3);margin-bottom:5px;">
               ${m.group_name||m.phase} · ${fmtDateHeader(cltDate(m.match_date))} ${fmtTime(m.match_date)} CLT
+              ${m.is_double_points ? '<span style="color:var(--gold-lt);margin-left:4px;">⭐ doble</span>' : ''}
             </div>
             ${status}
           </div>
@@ -853,12 +870,13 @@ function renderAdmin() {
 }
 
 async function addMatch() {
-  const home  = (document.getElementById('addHome').value  || '').trim();
-  const away  = (document.getElementById('addAway').value  || '').trim();
-  const date  = document.getElementById('addDate').value;
-  const phase = document.getElementById('addPhase').value;
-  const group = (document.getElementById('addGroup').value || '').trim() || null;
-  const venue = (document.getElementById('addVenue').value || '').trim() || null;
+  const home     = (document.getElementById('addHome').value  || '').trim();
+  const away     = (document.getElementById('addAway').value  || '').trim();
+  const date     = document.getElementById('addDate').value;
+  const phase    = document.getElementById('addPhase').value;
+  const group    = (document.getElementById('addGroup').value || '').trim() || null;
+  const venue    = (document.getElementById('addVenue').value || '').trim() || null;
+  const isDouble = document.getElementById('addDouble').checked;
 
   if (!home)        { toast('⚠ Falta el equipo local'); return; }
   if (!away)        { toast('⚠ Falta el equipo visitante'); return; }
@@ -871,11 +889,13 @@ async function addMatch() {
   const { error } = await sb.from('mundial_matches').insert({
     home_team: home, away_team: away, match_date: utcDate,
     phase, group_name: group, venue, is_finished: false,
+    is_double_points: isDouble,
   });
 
   if (error) { toast('✗ Error al agregar'); return; }
-  toast(`✓ ${home} vs ${away} agregado`);
+  toast(`✓ ${home} vs ${away} agregado${isDouble ? ' ⭐' : ''}`);
   ['addHome','addAway','addDate','addGroup','addVenue'].forEach(id => { document.getElementById(id).value = ''; });
+  document.getElementById('addDouble').checked = false;
   await loadMatches();
   renderAdmin();
 }
