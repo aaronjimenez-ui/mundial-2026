@@ -934,24 +934,29 @@ async function bootApp() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+  sb = supabase.createClient(SUPA_URL, SUPA_KEY, {
+    auth: { detectSessionInUrl: true, persistSession: true }
+  });
 
   // Auth state listener — única fuente de verdad
   sb.auth.onAuthStateChange(async (event, session) => {
     if (session) {
       const email = session.user.email;
-      // Verificar dominio @nubox.com
       if (!email.endsWith('@nubox.com')) {
         await sb.auth.signOut();
         showLoginScreen('Solo empleados @nubox.com pueden acceder.');
         return;
       }
       currentUser = session.user;
-      adminUnlocked = false; // reset al cambiar sesión
+      adminUnlocked = false;
       document.getElementById('loginModal').style.display = 'none';
       document.getElementById('app').style.display = 'block';
       await bootApp();
     } else {
+      // Si hay un código OAuth en la URL, ignorar el null inicial —
+      // Supabase está intercambiando el código y SIGNED_IN llega después
+      const oauthInProgress = window.location.search.includes('code=');
+      if (oauthInProgress) return;
       currentUser = null;
       adminUnlocked = false;
       document.getElementById('loginModal').style.display = 'flex';
