@@ -387,7 +387,13 @@ function showLoginScreen(msg) {
 
 async function logout() {
   if (!confirm('¿Salir? Tus apuestas quedan guardadas.')) return;
-  await sb.auth.signOut();
+  // Mostrar login de inmediato — no esperar la respuesta de red de signOut
+  _bootedForUserId = null;
+  currentUser = null;
+  adminUnlocked = false;
+  document.getElementById('loginModal').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+  sb.auth.signOut().catch(() => {});
 }
 
 /* ── Data ── */
@@ -943,14 +949,22 @@ async function bootApp() {
   activeWeek = getDefaultWeek();
   document.getElementById('pane-matches').innerHTML = '<div class="spinner"></div>';
   try {
-    await loadAll();
+    await Promise.race([
+      loadAll(),
+      new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 8000))
+    ]);
     render();
   } catch (e) {
     console.error(e);
+    const isTimeout = e.message === 'timeout';
     document.getElementById('pane-matches').innerHTML =
-      `<div class="empty-state"><div class="icon" style="color:var(--red);">⚠</div>
-       <div class="title" style="color:var(--red);">Error de conexión</div>
-       <div class="sub">Verifica tu conexión y recarga la página.</div></div>`;
+      `<div class="empty-state">
+         <div class="icon" style="color:${isTimeout ? 'var(--orange)' : 'var(--red)'};">⚠</div>
+         <div class="title">${isTimeout ? 'Carga lenta' : 'Error de conexión'}</div>
+         <div class="sub">${isTimeout ? 'El servidor tardó demasiado.' : 'Verifica tu conexión.'}<br>
+           <button class="btn btn-ghost btn-sm" onclick="refreshAll()" style="margin-top:12px;">↻ Reintentar</button>
+         </div>
+       </div>`;
   }
 }
 
