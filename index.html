@@ -892,8 +892,8 @@ async function addMatch() {
   if (!date)        { toast('⚠ Falta la fecha y hora'); return; }
   if (home === away) { toast('⚠ Los equipos deben ser distintos'); return; }
 
-  /* date-local is CLT → convert to UTC (+4h) */
-  const utcDate = new Date(new Date(date).getTime() + 4 * 3600000).toISOString();
+  /* date-local es CLT (UTC-4) → forzar offset explícito, independiente del browser */
+  const utcDate = new Date(date + '-04:00').toISOString();
 
   const { error } = await sb.from('mundial_matches').insert({
     home_team: home, away_team: away, match_date: utcDate,
