@@ -412,12 +412,13 @@ async function loadUserPreds() {
 }
 
 async function loadLeaderboard() {
-  const { data } = await sb.from('mundial_predictions').select('display_name, points');
+  const { data } = await sb.from('mundial_predictions').select('user_id, display_name, points');
   const board = {};
   (data || []).forEach(p => {
-    const name = p.display_name || 'Sin nombre';
-    if (!board[name]) board[name] = { name, total: 0 };
-    board[name].total += (p.points || 0);
+    const uid = p.user_id;
+    if (!board[uid]) board[uid] = { uid, name: p.display_name || 'Sin nombre', total: 0 };
+    board[uid].total += (p.points || 0);
+    if (p.display_name) board[uid].name = p.display_name; // usa el nombre más reciente
   });
   leaderboard = Object.values(board).sort((a, b) => b.total - a.total);
   updateHeaderPts();
@@ -429,8 +430,7 @@ function getMyDisplayName() {
 }
 
 function updateHeaderPts() {
-  const myName = getMyDisplayName();
-  const me = leaderboard.find(p => p.name === myName);
+  const me = leaderboard.find(p => p.uid === currentUser?.id);
   const pts = me ? me.total : 0;
   document.getElementById('hdrPts').textContent = `${pts} ${pts === 1 ? 'PUNTO' : 'PUNTOS'}`;
 }
@@ -728,7 +728,7 @@ function renderLeaderboard() {
   }
 
   leaderboard.forEach((p, i) => {
-    const isMe = p.name === myName;
+    const isMe = p.uid === currentUser?.id;
     const top3 = i < 3;
     const cls  = top3 ? `card ${LDR_CLS[i]}` : 'card';
     const ptColor = top3 ? COLORS[i] : 'var(--tx)';
