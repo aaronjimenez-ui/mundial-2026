@@ -385,9 +385,7 @@ function showLoginScreen(msg) {
   }
 }
 
-async function logout() {
-  if (!confirm('¿Salir? Tus apuestas quedan guardadas.')) return;
-  // Mostrar login de inmediato — no esperar la respuesta de red de signOut
+function logout() {
   _bootedForUserId = null;
   currentUser = null;
   adminUnlocked = false;
