@@ -769,9 +769,15 @@ function renderAdmin() {
     html += `<div class="card" style="text-align:center;padding:24px;color:var(--t3);">No hay partidos cargados.</div>`;
   } else {
     matches.forEach(m => {
-      const status = m.is_finished
-        ? `<span class="badge badge-win" style="font-size:10px;">✓ ${m.home_score}:${m.away_score}</span>`
-        : `<span class="badge badge-none" style="font-size:10px;">Pendiente</span>`;
+      let statusBadge;
+      if (m.status === 'validated') {
+        statusBadge = `<span class="badge badge-win" style="font-size:10px;">✓ ${m.home_score}:${m.away_score}</span>`;
+      } else if (m.status === 'confirmed') {
+        statusBadge = `<span class="badge" style="font-size:10px;background:rgba(212,168,83,0.15);color:var(--gold-lt);border:1px solid rgba(212,168,83,0.3);">Procesando…</span>`;
+      } else {
+        statusBadge = `<span class="badge badge-none" style="font-size:10px;">Pendiente</span>`;
+      }
+      const status = statusBadge;
 
       html += `<div class="card card-sm">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;">
@@ -847,27 +853,28 @@ async function addMatch() {
 }
 
 async function setResult(matchId) {
-  const rh = parseInt((document.getElementById(`rh-${matchId}`) || {}).value);
-  const ra = parseInt((document.getElementById(`ra-${matchId}`) || {}).value);
+  const rh = parseInt(document.getElementById('rh-' + matchId).value);
+  const ra = parseInt(document.getElementById('ra-' + matchId).value);
   if (isNaN(rh) || isNaN(ra) || rh < 0 || ra < 0) { toast('⚠ Ingresa el resultado'); return; }
 
+  // Modal de confirmación
   const m = matches.find(x => x.id === matchId);
-  if (!confirm(`¿Guardar?\n${m?.home_team} ${rh}:${ra} ${m?.away_team}`)) return;
+  const label = `${m.home_team} ${rh} – ${ra} ${m.away_team}`;
+  const alreadyValidated = m.status === 'validated';
+  const msg = alreadyValidated
+    ? `Este partido ya fue validado.\n¿Corregir resultado a:\n${label}?\n\nSe recalcularán todos los puntos.`
+    : `¿Confirmar resultado?\n${label}`;
+  if (!confirm(msg)) return;
 
-  toast('Calculando...');
   const { error: mErr } = await sb.from('mundial_matches')
-    .update({ home_score: rh, away_score: ra, is_finished: true }).eq('id', matchId);
+    .update({ home_score: rh, away_score: ra, is_finished: true, status: 'confirmed' })
+    .eq('id', matchId);
   if (mErr) { toast('✗ Error al guardar resultado'); return; }
 
-  const { data: preds } = await sb.from('mundial_predictions')
-    .select('id, pred_home, pred_away').eq('match_id', matchId);
-  for (const p of (preds || [])) {
-    await sb.from('mundial_predictions')
-      .update({ points: calcPoints(p.pred_home, p.pred_away, rh, ra) }).eq('id', p.id);
-  }
-
-  toast(`✓ Resultado guardado · ${(preds||[]).length} apuestas calculadas`);
+  toast('✓ Resultado guardado — puntos calculados automáticamente');
   await loadAll();
+  renderMatches();
+  renderLeaderboard();
   renderAdmin();
 }
 
