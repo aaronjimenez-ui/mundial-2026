@@ -120,7 +120,8 @@
 
     /* ── Team block ── */
     .team-block { display: flex; flex-direction: column; align-items: center; gap: 5px; flex: 1; min-width: 0; }
-    .team-flag  { font-size: 30px; line-height: 1; }
+    .team-flag  { display: flex; justify-content: center; align-items: center; height: 36px; }
+    .team-flag img { border-radius: 4px; object-fit: cover; box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
     .team-name  { font-size: 11px; font-weight: 700; color: var(--t2); text-align: center;
                   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 90px;
                   letter-spacing: 0.3px; text-transform: uppercase; }
@@ -257,25 +258,34 @@ let sb, currentUser;
 let matches = [], userPreds = {}, leaderboard = [];
 let activeTab = 'matches', activeWeek = 1, activeGroup = 'Todos', adminUnlocked = false;
 
-/* ── Flags ── */
-const FLAGS = {
-  'Argentina':'🇦🇷','Brasil':'🇧🇷','Chile':'🇨🇱','Alemania':'🇩🇪','Francia':'🇫🇷',
-  'España':'🇪🇸','Uruguay':'🇺🇾','Colombia':'🇨🇴','México':'🇲🇽','USA':'🇺🇸',
-  'Canadá':'🇨🇦','Inglaterra':'🏴󠁧󠁢󠁥󠁮󠁧󠁿','Portugal':'🇵🇹','Países Bajos':'🇳🇱',
-  'Ecuador':'🇪🇨','Paraguay':'🇵🇾','Japón':'🇯🇵','Corea del Sur':'🇰🇷',
-  'Australia':'🇦🇺','Arabia Saudita':'🇸🇦','Irán':'🇮🇷','Qatar':'🇶🇦',
-  'Croacia':'🇭🇷','Bélgica':'🇧🇪','Suiza':'🇨🇭','Austria':'🇦🇹',
-  'Escocia':'🏴󠁧󠁢󠁳󠁣󠁴󠁿','Dinamarca':'🇩🇰','Suecia':'🇸🇪','Noruega':'🇳🇴',
-  'Marruecos':'🇲🇦','Senegal':'🇸🇳','Ghana':'🇬🇭','Egipto':'🇪🇬',
-  'Túnez':'🇹🇳','Argelia':'🇩🇿','Sudáfrica':'🇿🇦','Nigeria':'🇳🇬',
-  'Panamá':'🇵🇦','Costa Rica':'🇨🇷','Honduras':'🇭🇳','Jamaica':'🇯🇲',
-  'Estados Unidos':'🇺🇸','Türkiye':'🇹🇷','Turquía':'🇹🇷',
-  'Bosnia y Herz.':'🇧🇦','Rep. Checa':'🇨🇿','Haití':'🇭🇹',
-  'Rep. D. Congo':'🇨🇩','Curazao':'🇨🇼','Cabo Verde':'🇨🇻',
-  'Uzbekistán':'🇺🇿','Irak':'🇮🇶','Jordania':'🇯🇴',
-  'Nueva Zelanda':'🇳🇿','Costa de Marfil':'🇨🇮','Costa de Marfil':'🇨🇮',
+/* ── Flags (ISO 3166-1 alpha-2 codes → flagcdn.com) ── */
+const FLAG_CODES = {
+  'Alemania':'de','Arabia Saudita':'sa','Argelia':'dz','Argentina':'ar',
+  'Australia':'au','Austria':'at','Bélgica':'be','Bosnia y Herz.':'ba',
+  'Brasil':'br','Cabo Verde':'cv','Canadá':'ca','Chile':'cl',
+  'Colombia':'co','Corea del Sur':'kr','Costa de Marfil':'ci','Costa Rica':'cr',
+  'Croacia':'hr','Curazao':'cw','Dinamarca':'dk','Ecuador':'ec',
+  'Egipto':'eg','Escocia':'gb-sct','España':'es','Estados Unidos':'us',
+  'Francia':'fr','Ghana':'gh','Haití':'ht','Honduras':'hn',
+  'Inglaterra':'gb-eng','Irak':'iq','Irán':'ir','Jamaica':'jm',
+  'Japón':'jp','Jordania':'jo','Marruecos':'ma','México':'mx',
+  'Nigeria':'ng','Noruega':'no','Nueva Zelanda':'nz','Países Bajos':'nl',
+  'Panamá':'pa','Paraguay':'py','Portugal':'pt','Qatar':'qa',
+  'Rep. Checa':'cz','Rep. D. Congo':'cd','Senegal':'sn','Sudáfrica':'za',
+  'Suecia':'se','Suiza':'ch','Túnez':'tn','Türkiye':'tr','Turquía':'tr',
+  'Uruguay':'uy','USA':'us','Uzbekistán':'uz',
 };
-const flag = t => FLAGS[t] || '🏴';
+
+const flag = (t, size = 48) => {
+  const code = FLAG_CODES[t];
+  if (!code) return `<span style="font-size:${Math.round(size * 0.6)}px;line-height:1;">🏴</span>`;
+  const h = Math.round(size * 0.65);
+  const src = size <= 24
+    ? `https://flagcdn.com/w40/${code}.png`
+    : `https://flagcdn.com/w80/${code}.png`;
+  return `<img src="${src}" width="${size}" height="${h}" alt="${t}" loading="lazy" ` +
+         `style="border-radius:3px;object-fit:cover;display:inline-block;vertical-align:middle;">`;
+};
 
 /* ── Utils ── */
 function cltDate(dt) {
@@ -748,7 +758,7 @@ function renderAdmin() {
   </div>
 
   <datalist id="teamList">
-    ${Object.keys(FLAGS).map(t => `<option value="${t}">`).join('')}
+    ${Object.keys(FLAG_CODES).map(t => `<option value="${t}">`).join('')}
   </datalist>
 
   <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.8px;color:var(--t3);margin-bottom:10px;">
@@ -766,8 +776,10 @@ function renderAdmin() {
       html += `<div class="card card-sm">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;">
           <div style="min-width:0;flex:1;">
-            <div style="font-weight:700;font-size:12px;color:var(--tx);margin-bottom:2px;">
-              ${flag(m.home_team)} ${m.home_team} vs ${flag(m.away_team)} ${m.away_team}
+            <div style="font-weight:700;font-size:12px;color:var(--tx);margin-bottom:2px;display:flex;align-items:center;gap:5px;flex-wrap:wrap;">
+              ${flag(m.home_team, 20)} ${m.home_team}
+              <span style="color:var(--t3);">vs</span>
+              ${flag(m.away_team, 20)} ${m.away_team}
             </div>
             <div style="font-size:10px;color:var(--t3);margin-bottom:5px;">
               ${m.group_name||m.phase} · ${fmtDateHeader(cltDate(m.match_date))} ${fmtTime(m.match_date)} CLT
