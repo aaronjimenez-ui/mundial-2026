@@ -359,7 +359,7 @@ async function loginWithGoogle() {
     provider: 'google',
     options: {
       queryParams: { hd: 'nubox.com' },
-      redirectTo: window.location.href
+      redirectTo: window.location.origin
     }
   });
   if (error) toast('✗ Error al iniciar sesión: ' + error.message);
