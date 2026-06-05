@@ -274,6 +274,7 @@ const WEEKS = [
 let sb, currentUser = null; // session.user object de Supabase Auth
 let matches = [], userPreds = {}, leaderboard = [];
 let activeTab = 'matches', activeWeek = 1, activeGroup = 'Todos', adminUnlocked = false;
+let _bootedForUserId = null; // evita bootApp() duplicado por múltiples eventos SIGNED_IN
 
 /* ── Flags (ISO 3166-1 alpha-2 codes → flagcdn.com) ── */
 const FLAG_CODES = {
@@ -967,16 +968,26 @@ document.addEventListener('DOMContentLoaded', () => {
         showLoginScreen('Solo empleados @nubox.com pueden acceder.');
         return;
       }
+
+      // Limpiar params OAuth de la URL (evita que code= bloquee el logout después)
+      if (window.location.search) {
+        window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
+      }
+
+      // Evitar boot duplicado: Supabase dispara SIGNED_IN varias veces tras OAuth
+      if (_bootedForUserId === session.user.id) return;
+      _bootedForUserId = session.user.id;
+
       currentUser = session.user;
       adminUnlocked = false;
       document.getElementById('loginModal').style.display = 'none';
       document.getElementById('app').style.display = 'block';
       await bootApp();
     } else {
-      // Si hay un código OAuth en la URL, ignorar el null inicial —
-      // Supabase está intercambiando el código y SIGNED_IN llega después
-      const oauthInProgress = window.location.search.includes('code=');
-      if (oauthInProgress) return;
+      // SIGNED_OUT siempre muestra login (no depender de URL)
+      // Otros eventos sin sesión (INITIAL_SESSION durante OAuth) sí esperan el code=
+      if (event !== 'SIGNED_OUT' && window.location.search.includes('code=')) return;
+      _bootedForUserId = null;
       currentUser = null;
       adminUnlocked = false;
       document.getElementById('loginModal').style.display = 'flex';
