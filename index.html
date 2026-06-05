@@ -171,12 +171,23 @@
   <div class="modal-box fade-in">
     <div style="width:68px;height:68px;background:linear-gradient(135deg,var(--blue),var(--navy-md));border-radius:20px;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;box-shadow:0 0 40px rgba(74,144,217,0.3);font-size:34px;">⚽</div>
     <h1 style="font-size:24px;font-weight:900;color:var(--tx);letter-spacing:-0.5px;margin-bottom:4px;">Mundial 2026</h1>
-    <p style="color:var(--t3);font-size:12px;margin-bottom:24px;letter-spacing:0.2px;">USA · CANADÁ · MÉXICO</p>
+    <p style="color:var(--t3);font-size:12px;margin-bottom:8px;letter-spacing:0.2px;">USA · CANADÁ · MÉXICO</p>
+    <p style="color:var(--t2);font-size:13px;margin-bottom:24px;line-height:1.5;">
+      Predicciones del equipo Nubox.<br>
+      Solo cuentas @nubox.com.
+    </p>
 
-    <input id="nameInput" type="text" class="input" placeholder="Tu nombre"
-      maxlength="30" style="text-align:center;font-size:16px;font-weight:700;margin-bottom:12px;border-radius:12px;"
-      onkeydown="if(event.key==='Enter') login()" />
-    <button onclick="login()" class="btn btn-primary" style="width:100%;font-size:15px;padding:13px;border-radius:12px;">Entrar</button>
+    <button onclick="loginWithGoogle()" class="btn btn-primary" style="width:100%;font-size:15px;padding:13px;border-radius:12px;display:flex;align-items:center;justify-content:center;gap:10px;">
+      <svg width="18" height="18" viewBox="0 0 24 24" style="flex-shrink:0;">
+        <path fill="#fff" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+        <path fill="#fff" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+        <path fill="#fff" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
+        <path fill="#fff" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+      </svg>
+      Entrar con Google
+    </button>
+
+    <p id="loginError" style="color:var(--coral);font-size:12px;margin-top:12px;display:none;"></p>
 
     <div style="margin-top:20px;background:var(--s3);border:1px solid var(--bd);border-radius:12px;padding:14px;text-align:left;">
       <div style="font-size:10px;font-weight:800;color:var(--t2);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px;">Sistema de puntos</div>
@@ -244,7 +255,6 @@
 /* ── Config ── */
 const SUPA_URL = 'https://okqwgsjhosfcdputpxlw.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9rcXdnc2pob3NmY2RwdXRweGx3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNzI2MTcsImV4cCI6MjA5MDY0ODYxN30.pZGeFbydGY6ilUhwNX77ax5HEmed0gSBUIoNOvW1kPE';
-const ADMIN_PW = 'Mundial2026!';
 
 /* ── Tournament weeks (CLT dates) ── */
 const WEEKS = [
@@ -254,7 +264,7 @@ const WEEKS = [
 ];
 
 /* ── State ── */
-let sb, currentUser;
+let sb, currentUser = null; // session.user object de Supabase Auth
 let matches = [], userPreds = {}, leaderboard = [];
 let activeTab = 'matches', activeWeek = 1, activeGroup = 'Todos', adminUnlocked = false;
 
@@ -344,19 +354,29 @@ function getDefaultWeek() {
 }
 
 /* ── Auth ── */
-function login() {
-  const name = (document.getElementById('nameInput').value || '').trim();
-  if (!name || name.length < 2) { toast('⚠ Escribe tu nombre (mínimo 2 letras)'); return; }
-  currentUser = name;
-  localStorage.setItem('mundial_user', name);
-  document.getElementById('loginModal').style.display = 'none';
-  document.getElementById('app').style.display = 'block';
-  bootApp();
+async function loginWithGoogle() {
+  const { error } = await sb.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      queryParams: { hd: 'nubox.com' },
+      redirectTo: window.location.href
+    }
+  });
+  if (error) toast('✗ Error al iniciar sesión: ' + error.message);
 }
-function logout() {
+
+function showLoginScreen(msg) {
+  document.getElementById('loginModal').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+  if (msg) {
+    const el = document.getElementById('loginError');
+    if (el) { el.textContent = msg; el.style.display = 'block'; }
+  }
+}
+
+async function logout() {
   if (!confirm('¿Salir? Tus apuestas quedan guardadas.')) return;
-  localStorage.removeItem('mundial_user');
-  location.reload();
+  await sb.auth.signOut();
 }
 
 /* ── Data ── */
@@ -371,24 +391,31 @@ async function loadMatches() {
 }
 
 async function loadUserPreds() {
-  const { data } = await sb.from('mundial_predictions').select('*').eq('player_name', currentUser);
+  const { data } = await sb.from('mundial_predictions').select('*').eq('user_id', currentUser.id);
   userPreds = {};
   (data || []).forEach(p => { userPreds[p.match_id] = p; });
 }
 
 async function loadLeaderboard() {
-  const { data } = await sb.from('mundial_predictions').select('player_name, points');
+  const { data } = await sb.from('mundial_predictions').select('display_name, points');
   const board = {};
   (data || []).forEach(p => {
-    if (!board[p.player_name]) board[p.player_name] = { name: p.player_name, total: 0 };
-    board[p.player_name].total += (p.points || 0);
+    const name = p.display_name || 'Sin nombre';
+    if (!board[name]) board[name] = { name, total: 0 };
+    board[name].total += (p.points || 0);
   });
   leaderboard = Object.values(board).sort((a, b) => b.total - a.total);
   updateHeaderPts();
 }
 
+function getMyDisplayName() {
+  if (!currentUser) return '';
+  return currentUser.user_metadata?.full_name || currentUser.email.split('@')[0];
+}
+
 function updateHeaderPts() {
-  const me = leaderboard.find(p => p.name === currentUser);
+  const myName = getMyDisplayName();
+  const me = leaderboard.find(p => p.name === myName);
   const pts = me ? me.total : 0;
   document.getElementById('hdrPts').textContent = `${pts} ${pts === 1 ? 'PUNTO' : 'PUNTOS'}`;
 }
@@ -611,9 +638,18 @@ async function savePred(matchId) {
   const orig = btn.textContent;
   btn.disabled = true; btn.textContent = '...';
 
+  const displayName = getMyDisplayName();
+
   const { error } = await sb.from('mundial_predictions').upsert(
-    { player_name: currentUser, match_id: matchId, pred_home: ph, pred_away: pa, points: 0 },
-    { onConflict: 'player_name,match_id' }
+    {
+      user_id: currentUser.id,
+      display_name: displayName,
+      match_id: matchId,
+      pred_home: ph,
+      pred_away: pa,
+      points: 0
+    },
+    { onConflict: 'user_id,match_id' }
   );
 
   btn.disabled = false; btn.textContent = orig;
@@ -642,6 +678,7 @@ function renderLeaderboard() {
   const MEDALS  = ['🥇','🥈','🥉'];
   const LDR_CLS = ['ldr-1','ldr-2','ldr-3'];
   const COLORS  = ['var(--gold)','var(--silver)','var(--bronze)'];
+  const myName  = getMyDisplayName();
 
   let html = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
     <div style="font-size:17px;font-weight:900;color:var(--tx);">Clasificación</div>
@@ -670,7 +707,7 @@ function renderLeaderboard() {
   }
 
   leaderboard.forEach((p, i) => {
-    const isMe = p.name === currentUser;
+    const isMe = p.name === myName;
     const top3 = i < 3;
     const cls  = top3 ? `card ${LDR_CLS[i]}` : 'card';
     const ptColor = top3 ? COLORS[i] : 'var(--tx)';
@@ -710,18 +747,20 @@ function renderAdmin() {
   if (!pane) return;
 
   if (!adminUnlocked) {
-    pane.innerHTML = `<div style="max-width:340px;margin:36px auto;">
-      <div class="card" style="text-align:center;padding:32px 24px;">
-        <div style="font-size:36px;margin-bottom:14px;">🔒</div>
-        <div style="font-weight:900;font-size:17px;margin-bottom:6px;">Área de Administrador</div>
-        <div style="font-size:12px;color:var(--t3);margin-bottom:20px;line-height:1.6;">Agrega partidos y registra resultados.</div>
-        <input type="password" id="adminPwInput" class="input"
-          placeholder="Contraseña" style="text-align:center;letter-spacing:4px;margin-bottom:12px;"
-          onkeydown="if(event.key==='Enter') unlockAdmin()" />
-        <button onclick="unlockAdmin()" class="btn btn-primary" style="width:100%;padding:11px;">Entrar</button>
-      </div>
-    </div>`;
-    return;
+    // Verificar si el usuario logueado es el admin
+    if (currentUser && currentUser.email === 'aaron.jimenez@nubox.com') {
+      adminUnlocked = true;
+    } else {
+      pane.innerHTML = `<div style="max-width:340px;margin:36px auto;">
+        <div class="card" style="text-align:center;padding:32px 24px;">
+          <div style="font-size:36px;margin-bottom:14px;">🔒</div>
+          <div style="font-weight:900;font-size:17px;margin-bottom:6px;">Área de Administrador</div>
+          <div style="font-size:12px;color:var(--t3);margin-bottom:20px;line-height:1.6;">Solo el administrador puede acceder a esta sección.</div>
+          <div style="font-size:13px;color:var(--t2);">Inicia sesión con tu cuenta de administrador.</div>
+        </div>
+      </div>`;
+      return;
+    }
   }
 
   let html = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
@@ -813,17 +852,6 @@ function renderAdmin() {
   pane.innerHTML = html;
 }
 
-function unlockAdmin() {
-  if ((document.getElementById('adminPwInput').value || '') === ADMIN_PW) {
-    adminUnlocked = true;
-    toast('✓ Modo Admin activado');
-    renderAdmin();
-  } else {
-    toast('✗ Contraseña incorrecta');
-    document.getElementById('adminPwInput').value = '';
-  }
-}
-
 async function addMatch() {
   const home  = (document.getElementById('addHome').value  || '').trim();
   const away  = (document.getElementById('addAway').value  || '').trim();
@@ -889,8 +917,8 @@ async function deleteMatch(matchId) {
 
 /* ── Boot ── */
 async function bootApp() {
-  document.getElementById('hdrName').textContent = currentUser;
-  sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+  const displayName = getMyDisplayName();
+  document.getElementById('hdrName').textContent = displayName;
   activeWeek = getDefaultWeek();
   document.getElementById('pane-matches').innerHTML = '<div class="spinner"></div>';
   try {
@@ -906,16 +934,30 @@ async function bootApp() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  currentUser = localStorage.getItem('mundial_user');
-  if (currentUser) {
-    document.getElementById('loginModal').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
-    bootApp();
-  } else {
-    document.getElementById('loginModal').style.display = 'flex';
-    document.getElementById('app').style.display = 'none';
-    setTimeout(() => document.getElementById('nameInput').focus(), 100);
-  }
+  sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+  // Auth state listener — única fuente de verdad
+  sb.auth.onAuthStateChange(async (event, session) => {
+    if (session) {
+      const email = session.user.email;
+      // Verificar dominio @nubox.com
+      if (!email.endsWith('@nubox.com')) {
+        await sb.auth.signOut();
+        showLoginScreen('Solo empleados @nubox.com pueden acceder.');
+        return;
+      }
+      currentUser = session.user;
+      adminUnlocked = false; // reset al cambiar sesión
+      document.getElementById('loginModal').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      await bootApp();
+    } else {
+      currentUser = null;
+      adminUnlocked = false;
+      document.getElementById('loginModal').style.display = 'flex';
+      document.getElementById('app').style.display = 'none';
+    }
+  });
 });
 </script>
 </body>
