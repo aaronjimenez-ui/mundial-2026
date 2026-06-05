@@ -470,14 +470,18 @@ function renderMatches() {
   if (!pane) return;
 
   /* ── Week selector ── */
+  const currentWeekId = getDefaultWeek();
+  if (activeWeek > currentWeekId) activeWeek = currentWeekId;
+  const visibleWeeks = WEEKS.filter(w => w.id <= currentWeekId);
+
   let html = `<div style="margin-bottom:10px;">
-    <div class="hscroll" style="margin-bottom:8px;">
-      ${WEEKS.map(w => `
+    ${visibleWeeks.length > 1 ? `<div class="hscroll" style="margin-bottom:8px;">
+      ${visibleWeeks.map(w => `
         <button class="pill${activeWeek===w.id?' active':''}" onclick="setWeek(${w.id})" style="display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 14px;">
           <span style="font-size:12px;">${w.label}</span>
           <span style="font-size:10px;opacity:0.7;font-weight:500;">${w.dates}</span>
         </button>`).join('')}
-    </div>`;
+    </div>` : ''}`;
 
   /* ── Group filter ── */
   const groups = ['Todos', ...new Set(matches.filter(m=>m.group_name).map(m=>m.group_name).sort())];
@@ -944,6 +948,11 @@ async function deleteMatch(matchId) {
 async function bootApp() {
   const displayName = getMyDisplayName();
   document.getElementById('hdrName').textContent = displayName;
+  // Tab Admin solo visible para el administrador
+  const adminTabBtn = document.getElementById('tabBtn-admin');
+  if (adminTabBtn) {
+    adminTabBtn.style.display = currentUser?.email === 'aaron.jimenez@nubox.com' ? '' : 'none';
+  }
   activeWeek = getDefaultWeek();
   document.getElementById('pane-matches').innerHTML = '<div class="spinner"></div>';
   try {
