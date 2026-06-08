@@ -173,8 +173,8 @@
     <h1 style="font-size:24px;font-weight:900;color:var(--tx);letter-spacing:-0.5px;margin-bottom:4px;">Mundial 2026</h1>
     <p style="color:var(--t3);font-size:12px;margin-bottom:8px;letter-spacing:0.2px;">USA · CANADÁ · MÉXICO</p>
     <p style="color:var(--t2);font-size:13px;margin-bottom:24px;line-height:1.5;">
-      Predicciones del equipo Nubox.<br>
-      Solo cuentas @nubox.com.
+      Predice los resultados del Mundial 2026.<br>
+      Entra con tu cuenta de Google.
     </p>
 
     <button onclick="loginWithGoogle()" class="btn btn-primary" style="width:100%;font-size:15px;padding:13px;border-radius:12px;display:flex;align-items:center;justify-content:center;gap:10px;">
@@ -369,7 +369,6 @@ async function loginWithGoogle() {
   const { error } = await sb.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      queryParams: { hd: 'nubox.com' },
       redirectTo: window.location.origin
     }
   });
@@ -983,13 +982,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // Auth state listener — única fuente de verdad
   sb.auth.onAuthStateChange(async (event, session) => {
     if (session) {
-      const email = session.user.email;
-      if (!email.endsWith('@nubox.com')) {
-        await sb.auth.signOut();
-        showLoginScreen('Solo empleados @nubox.com pueden acceder.');
-        return;
-      }
-
       // Limpiar params OAuth de la URL (evita que code= bloquee el logout después)
       if (window.location.search) {
         window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
