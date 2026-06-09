@@ -265,9 +265,13 @@ const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsI
 
 /* ── Tournament weeks (CLT dates) ── */
 const WEEKS = [
-  { id: 1, label: 'Semana 1', dates: 'Jun 11-17', start: '2026-06-11', end: '2026-06-18' },
-  { id: 2, label: 'Semana 2', dates: 'Jun 18-24', start: '2026-06-18', end: '2026-06-25' },
-  { id: 3, label: 'Semana 3', dates: 'Jun 25-27', start: '2026-06-25', end: '2026-06-29' },
+  { id: 1, label: 'Semana 1',    dates: 'Jun 11-17',      start: '2026-06-11', end: '2026-06-18' },
+  { id: 2, label: 'Semana 2',    dates: 'Jun 18-24',      start: '2026-06-18', end: '2026-06-25' },
+  { id: 3, label: 'Semana 3',    dates: 'Jun 25-26',      start: '2026-06-25', end: '2026-06-27' },
+  { id: 4, label: 'Ronda de 32', dates: 'Jun 27 – Jul 2', start: '2026-06-27', end: '2026-07-03' },
+  { id: 5, label: 'Octavos',     dates: 'Jul 3-7',        start: '2026-07-03', end: '2026-07-08' },
+  { id: 6, label: 'Cuartos',     dates: 'Jul 8-11',       start: '2026-07-08', end: '2026-07-12' },
+  { id: 7, label: 'Semis+Final', dates: 'Jul 14-19',      start: '2026-07-12', end: '2026-07-20' },
 ];
 
 /* ── State ── */
@@ -339,15 +343,6 @@ function getLock(m) {
   return { locked: false, type: 'open', label: `${hrs}h ${mins%60}m` };
 }
 
-function calcPoints(pH, pA, rH, rA, isDouble = false) {
-  const m = isDouble ? 2 : 1;
-  if (pH === rH && pA === rA) return 5 * m;
-  if (Math.sign(pH - pA) === Math.sign(rH - rA)) return 3 * m;
-  if (pH === pA) return 0;         // predijiste empate, ganó alguien
-  if (rH === rA) return 1 * m;    // predijiste ganador, fue empate (consolación)
-  return 0;
-}
-
 let _tt;
 function toast(msg, ms = 2800) {
   const el = document.getElementById('toast');
@@ -359,9 +354,10 @@ function toast(msg, ms = 2800) {
 
 function getDefaultWeek() {
   const today = cltDate(new Date().toISOString());
-  if (today >= WEEKS[2].start) return 3;
-  if (today >= WEEKS[1].start) return 2;
-  return 1;
+  for (let i = WEEKS.length - 1; i >= 0; i--) {
+    if (today >= WEEKS[i].start) return WEEKS[i].id;
+  }
+  return WEEKS[0].id;
 }
 
 /* ── Auth ── */
