@@ -336,13 +336,13 @@ function fmtDateHeader(dateStr) {
 function getLock(m) {
   if (m.is_finished) return { locked: true, type: 'finished', label: 'Finalizado' };
   const diff = new Date(m.match_date) - Date.now();
-  if (diff <= 0)        return { locked: true, type: 'live',    label: 'En curso'     };
-  if (diff <= 3600000)  return { locked: true, type: 'closing', label: 'Cierra pronto'};
+  if (diff <= 0) return { locked: true, type: 'live', label: 'En curso' };
   const mins = Math.floor(diff / 60000);
   const hrs  = Math.floor(mins / 60);
   const days = Math.floor(hrs  / 24);
   if (days > 0) return { locked: false, type: 'open', label: `${days}d ${hrs%24}h` };
-  return { locked: false, type: 'open', label: `${hrs}h ${mins%60}m` };
+  if (hrs  > 0) return { locked: false, type: 'open', label: `${hrs}h ${String(mins%60).padStart(2,'0')}m` };
+  return { locked: false, type: 'open', label: `${String(mins).padStart(2,'0')}m ${String(diff/1000%60|0).padStart(2,'0')}s` };
 }
 
 let _tt;
@@ -1127,7 +1127,7 @@ function renderRules() {
       <div style="display:flex;flex-direction:column;gap:10px;">
         ${[
           ['1','Ingresa tus predicciones','En la pestaña <strong style="color:var(--tx);">Partidos</strong>, busca los partidos abiertos e ingresa el marcador que crees que va a salir. Puedes modificarla hasta que cierren las apuestas.'],
-          ['2','Cierre de apuestas','Las apuestas se cierran <strong style="color:var(--coral);">1 hora antes</strong> del inicio de cada partido. Después de ese momento no puedes cambiar tu predicción.'],
+          ['2','Cierre de apuestas','Las apuestas se cierran <strong style="color:var(--coral);">al inicio del partido</strong>. Puedes cambiar tu predicción en cualquier momento antes del pitazo inicial.'],
           ['3','Resultados y puntos','Una vez finalizado el partido, el administrador ingresa el resultado final y los puntos se calculan automáticamente. Revisa la <strong style="color:var(--tx);">Tabla</strong> para ver tu posición.'],
         ].map(([num, title, desc]) => `
           <div style="display:flex;gap:12px;align-items:flex-start;">
@@ -1146,7 +1146,7 @@ function renderRules() {
       <div style="display:flex;flex-direction:column;gap:7px;">
         ${[
           ['⚽','Una predicción por partido. Puedes actualizarla <strong style="color:var(--tx);">antes del cierre</strong>.'],
-          ['🔒','Las apuestas <strong style="color:var(--tx);">no se pueden modificar</strong> una vez iniciado el partido.'],
+          ['🔒','Puedes <strong style="color:var(--tx);">modificar tu apuesta</strong> hasta el momento exacto en que inicia el partido.'],
           ['📊','El leaderboard se actualiza cuando el admin ingresa el resultado de cada partido.'],
           ['🤝','En caso de empate en puntos en la tabla final, gana quien tenga <strong style="color:var(--tx);">más predicciones exactas (5 pts)</strong>.'],
           ['🎯','<strong style="color:var(--tx);">No hay límite de predicciones</strong> — puedes apostar en todos los partidos del torneo.'],
