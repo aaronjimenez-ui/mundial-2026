@@ -1069,7 +1069,30 @@ function renderRules() {
   const pane = document.getElementById('pane-rules');
   if (!pane) return;
 
+  const players = leaderboard.length;
+  const pot = players * 10000;
+  const fmtCLP = n => '$' + n.toLocaleString('es-CL');
+
   pane.innerHTML = `<div style="max-width:600px;margin:0 auto;">
+
+    <!-- Cuota de entrada -->
+    <div class="card" style="margin-bottom:12px;border-color:rgba(212,168,83,0.4);background:linear-gradient(135deg,rgba(212,168,83,0.08),rgba(212,168,83,0.02));">
+      <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.8px;color:var(--gold-lt);margin-bottom:14px;">💰 Cuota de Entrada</div>
+      <div style="display:flex;gap:0;align-items:stretch;">
+        <div style="flex:1;text-align:center;padding:12px 8px;background:rgba(212,168,83,0.08);border-radius:12px 0 0 12px;border:1px solid rgba(212,168,83,0.2);">
+          <div style="font-family:var(--mono);font-size:26px;font-weight:900;color:var(--gold-lt);line-height:1;">${fmtCLP(10000)}</div>
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--t3);margin-top:5px;">Por persona</div>
+        </div>
+        <div style="width:1px;background:rgba(212,168,83,0.2);"></div>
+        <div style="flex:1;text-align:center;padding:12px 8px;background:rgba(212,168,83,0.08);border-radius:0 12px 12px 0;border:1px solid rgba(212,168,83,0.2);border-left:none;">
+          <div style="font-family:var(--mono);font-size:26px;font-weight:900;color:var(--gold-lt);line-height:1;">${players > 0 ? fmtCLP(pot) : '—'}</div>
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--t3);margin-top:5px;">Pozo total${players > 0 ? ` · ${players} jugador${players !== 1 ? 'es' : ''}` : ''}</div>
+        </div>
+      </div>
+      <div style="margin-top:10px;padding:9px 12px;background:var(--s3);border-radius:9px;font-size:12px;color:var(--t2);line-height:1.5;">
+        <span style="color:var(--gold-lt);font-weight:700;">ℹ️</span> Transfiere tu cuota antes del inicio del torneo (11 Jun). Coordina el pago con el administrador.
+      </div>
+    </div>
 
     <!-- Sistema de puntos -->
     <div class="card" style="margin-bottom:12px;">
