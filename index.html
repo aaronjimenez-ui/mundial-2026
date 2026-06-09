@@ -244,6 +244,7 @@
     <div style="max-width:700px;margin:0 auto;display:flex;">
       <button class="tab-btn active" id="tabBtn-matches"     onclick="switchTab('matches')">Partidos</button>
       <button class="tab-btn"        id="tabBtn-leaderboard" onclick="switchTab('leaderboard')">Tabla</button>
+      <button class="tab-btn"        id="tabBtn-rules"       onclick="switchTab('rules')">Reglas</button>
       <button class="tab-btn"        id="tabBtn-admin"       onclick="switchTab('admin')">Admin</button>
     </div>
   </div>
@@ -252,6 +253,7 @@
   <div style="max-width:700px;margin:0 auto;padding:16px 14px;">
     <div id="pane-matches"     class="fade-in"></div>
     <div id="pane-leaderboard" style="display:none;"></div>
+    <div id="pane-rules"       style="display:none;"></div>
     <div id="pane-admin"       style="display:none;"></div>
   </div>
 </div>
@@ -433,7 +435,8 @@ function updateHeaderPts() {
 /* ── Navigation ── */
 function switchTab(tab) {
   activeTab = tab;
-  ['matches','leaderboard','admin'].forEach(t => {
+  if (tab !== 'matches' && _countdownInterval) { clearInterval(_countdownInterval); _countdownInterval = null; }
+  ['matches','leaderboard','rules','admin'].forEach(t => {
     document.getElementById(`tabBtn-${t}`).classList.toggle('active', t === tab);
     const pane = document.getElementById(`pane-${t}`);
     pane.style.display = t === tab ? 'block' : 'none';
@@ -444,6 +447,7 @@ function switchTab(tab) {
 function render() {
   if (activeTab === 'matches')     renderMatches();
   if (activeTab === 'leaderboard') renderLeaderboard();
+  if (activeTab === 'rules')       renderRules();
   if (activeTab === 'admin')       renderAdmin();
 }
 
@@ -469,7 +473,8 @@ function renderMatches() {
   if (activeWeek > currentWeekId) activeWeek = currentWeekId;
   const visibleWeeks = WEEKS.filter(w => w.id <= currentWeekId);
 
-  let html = `<div style="margin-bottom:10px;">
+  let html = renderNextMatchSection();
+  html += `<div style="margin-bottom:10px;">
     ${visibleWeeks.length > 1 ? `<div class="hscroll" style="margin-bottom:8px;">
       ${visibleWeeks.map(w => `
         <button class="pill${activeWeek===w.id?' active':''}" onclick="setWeek(${w.id})" style="display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 14px;">
@@ -491,11 +496,11 @@ function renderMatches() {
 
   if (matches.length === 0) {
     html += `<div class="empty-state"><div class="icon">🏟️</div><div class="title">Sin partidos</div><div class="sub">El Admin puede cargarlos en la pestaña Admin</div></div>`;
-    pane.innerHTML = html; return;
+    pane.innerHTML = html; startCountdown(); return;
   }
   if (filtered.length === 0) {
     html += `<div class="empty-state"><div class="icon">🔍</div><div class="title">Sin partidos</div><div class="sub">No hay partidos para este filtro</div></div>`;
-    pane.innerHTML = html; return;
+    pane.innerHTML = html; startCountdown(); return;
   }
 
   /* ── Pending alert ── */
@@ -525,6 +530,7 @@ function renderMatches() {
   });
 
   pane.innerHTML = html;
+  startCountdown();
 }
 
 function buildMatchCard(m) {
@@ -559,8 +565,12 @@ function buildMatchCard(m) {
   }
 
   /* ── Center: score or VS ── */
-  const center = m.is_finished
-    ? `<div class="score-display">${m.home_score}<span style="color:var(--t3);margin:0 4px;font-size:18px;">:</span>${m.away_score}</div>`
+  const hasLiveScore = !m.is_finished && lock.type === 'live' && m.home_score != null && m.away_score != null;
+  const center = (m.is_finished || hasLiveScore)
+    ? `<div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+         <div class="score-display">${m.home_score}<span style="color:var(--t3);margin:0 4px;font-size:18px;">:</span>${m.away_score}</div>
+         ${hasLiveScore ? `<span class="badge badge-live" style="font-size:9px;padding:2px 7px;margin-top:2px;">EN VIVO</span>` : ''}
+       </div>`
     : `<div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
          <div style="font-size:10px;font-weight:800;color:var(--t3);letter-spacing:2px;">VS</div>
          <div style="font-size:11px;color:var(--t3);font-weight:600;">${fmtTime(m.match_date)} CLT</div>
@@ -860,8 +870,9 @@ function renderAdmin() {
             <input type="number" min="0" max="20" id="ra-${m.id}" class="score-box"
               style="width:42px;height:42px;font-size:14px;"
               value="${m.away_score != null ? m.away_score : ''}" placeholder="–" />
+            ${!m.is_finished && getLock(m).type === 'live' ? `<button class="btn btn-ghost btn-sm" onclick="updateLiveScore('${m.id}')" style="border-color:rgba(52,199,123,0.4);color:var(--green);">⚽ En vivo</button>` : ''}
             <button class="btn btn-primary btn-sm" onclick="setResult('${m.id}')">
-              ${m.is_finished ? 'Corregir' : 'Guardar'}
+              ${m.is_finished ? 'Corregir' : 'Finalizar'}
             </button>
             <button class="btn-danger" onclick="deleteMatch('${m.id}')">✕</button>
           </div>
@@ -937,6 +948,216 @@ async function deleteMatch(matchId) {
   toast('✓ Partido eliminado');
   await loadAll();
   renderAdmin();
+}
+
+/* ── Next Match + Countdown ── */
+let _countdownInterval = null;
+
+function getNextMatch() {
+  const now = Date.now();
+  return matches
+    .filter(m => !m.is_finished && new Date(m.match_date).getTime() > now)
+    .sort((a, b) => new Date(a.match_date) - new Date(b.match_date))[0] || null;
+}
+
+function fmtCountdown(ms) {
+  if (ms <= 0) return '¡En curso!';
+  const totalSecs = Math.floor(ms / 1000);
+  const s = totalSecs % 60;
+  const mins = Math.floor(totalSecs / 60);
+  const m = mins % 60;
+  const hrs = Math.floor(mins / 60);
+  const h = hrs % 24;
+  const d = Math.floor(hrs / 24);
+  if (d > 0) return `${d}d ${h}h ${String(m).padStart(2,'0')}m`;
+  if (h > 0) return `${h}h ${String(m).padStart(2,'0')}m ${String(s).padStart(2,'0')}s`;
+  return `${String(m).padStart(2,'0')}m ${String(s).padStart(2,'0')}s`;
+}
+
+function startCountdown() {
+  if (_countdownInterval) { clearInterval(_countdownInterval); _countdownInterval = null; }
+  const next = getNextMatch();
+  if (!next) return;
+  function tick() {
+    const el = document.getElementById('countdown-timer');
+    if (!el) { clearInterval(_countdownInterval); _countdownInterval = null; return; }
+    const diff = new Date(next.match_date).getTime() - Date.now();
+    if (diff <= 0) {
+      el.textContent = '¡En curso!';
+      clearInterval(_countdownInterval); _countdownInterval = null;
+      setTimeout(() => loadMatches().then(() => renderMatches()), 3000);
+      return;
+    }
+    el.textContent = fmtCountdown(diff);
+  }
+  tick();
+  _countdownInterval = setInterval(tick, 1000);
+}
+
+function renderNextMatchSection() {
+  let html = '';
+
+  /* Partidos en curso con marcador ingresado */
+  const liveWithScore = matches.filter(m =>
+    !m.is_finished && getLock(m).type === 'live' && m.home_score != null && m.away_score != null
+  );
+  if (liveWithScore.length > 0) {
+    html += `<div class="card card-sm" style="margin-bottom:10px;border-color:rgba(52,199,123,0.45);background:linear-gradient(135deg,rgba(52,199,123,0.07),rgba(52,199,123,0.02));">
+      <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.8px;color:var(--green);margin-bottom:8px;display:flex;align-items:center;gap:6px;">
+        <span class="badge badge-live" style="font-size:9px;padding:2px 6px;">LIVE</span> En juego ahora
+      </div>
+      ${liveWithScore.map((m, i) => `
+        ${i > 0 ? '<div class="divider" style="margin:6px 0;"></div>' : ''}
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+          <div style="display:flex;align-items:center;gap:5px;font-size:12px;font-weight:700;flex:1;min-width:0;">
+            ${flag(m.home_team, 20)} <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${m.home_team}</span>
+          </div>
+          <div style="font-family:var(--mono);font-size:20px;font-weight:700;color:var(--tx);flex-shrink:0;padding:0 10px;letter-spacing:2px;">
+            ${m.home_score} : ${m.away_score}
+          </div>
+          <div style="display:flex;align-items:center;gap:5px;font-size:12px;font-weight:700;flex:1;min-width:0;justify-content:flex-end;">
+            <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${m.away_team}</span> ${flag(m.away_team, 20)}
+          </div>
+        </div>`).join('')}
+    </div>`;
+  }
+
+  /* Próximo partido con countdown */
+  const next = getNextMatch();
+  if (next) {
+    const diff = new Date(next.match_date).getTime() - Date.now();
+    html += `<div class="card card-sm" style="margin-bottom:10px;background:linear-gradient(135deg,rgba(74,144,217,0.07),rgba(74,144,217,0.02));border-color:rgba(74,144,217,0.3);">
+      <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.8px;color:var(--blue);margin-bottom:8px;">⏱ Próximo partido</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <div style="display:flex;align-items:center;gap:5px;font-size:13px;font-weight:700;color:var(--tx);">
+            ${flag(next.home_team, 24)} <span>${next.home_team}</span>
+          </div>
+          <span style="color:var(--t3);font-size:11px;font-weight:600;">vs</span>
+          <div style="display:flex;align-items:center;gap:5px;font-size:13px;font-weight:700;color:var(--tx);">
+            ${flag(next.away_team, 24)} <span>${next.away_team}</span>
+          </div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div id="countdown-timer" style="font-family:var(--mono);font-size:17px;font-weight:700;color:var(--blue);letter-spacing:0.5px;">${fmtCountdown(diff)}</div>
+          <div style="font-size:10px;color:var(--t3);margin-top:2px;">${fmtDateHeader(cltDate(next.match_date))} · ${fmtTime(next.match_date)} CLT</div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  return html;
+}
+
+/* ── Live Score (Admin) ── */
+async function updateLiveScore(matchId) {
+  const rh = parseInt(document.getElementById('rh-' + matchId).value);
+  const ra = parseInt(document.getElementById('ra-' + matchId).value);
+  if (isNaN(rh) || isNaN(ra) || rh < 0 || ra < 0) { toast('⚠ Ingresa el marcador actual'); return; }
+  const { error } = await sb.from('mundial_matches')
+    .update({ home_score: rh, away_score: ra })
+    .eq('id', matchId);
+  if (error) { toast('✗ Error al actualizar'); return; }
+  toast('⚽ Marcador en vivo actualizado');
+  await loadMatches();
+  renderMatches();
+  renderAdmin();
+}
+
+/* ── RULES ── */
+function renderRules() {
+  const pane = document.getElementById('pane-rules');
+  if (!pane) return;
+
+  pane.innerHTML = `<div style="max-width:600px;margin:0 auto;">
+
+    <!-- Sistema de puntos -->
+    <div class="card" style="margin-bottom:12px;">
+      <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.8px;color:var(--blue);margin-bottom:14px;">⭐ Sistema de Puntos</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;align-items:center;gap:12px;padding:10px;background:rgba(212,168,83,0.08);border-radius:10px;border:1px solid rgba(212,168,83,0.2);">
+          <span style="font-family:var(--mono);font-weight:900;font-size:22px;color:var(--gold-lt);min-width:44px;text-align:center;">5</span>
+          <div><div style="font-weight:700;font-size:13px;color:var(--tx);">Marcador exacto</div><div style="font-size:11px;color:var(--t3);margin-top:2px;">Predijiste el resultado exacto (ej: predijiste 2-1 y salió 2-1)</div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;padding:10px;background:rgba(52,199,123,0.07);border-radius:10px;border:1px solid rgba(52,199,123,0.18);">
+          <span style="font-family:var(--mono);font-weight:900;font-size:22px;color:var(--green);min-width:44px;text-align:center;">3</span>
+          <div><div style="font-weight:700;font-size:13px;color:var(--tx);">Ganador correcto</div><div style="font-size:11px;color:var(--t3);margin-top:2px;">Acertaste quién ganó (o predijiste empate y salió empate con distinto marcador)</div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;padding:10px;background:rgba(74,144,217,0.07);border-radius:10px;border:1px solid rgba(74,144,217,0.18);">
+          <span style="font-family:var(--mono);font-weight:900;font-size:22px;color:var(--blue-lt);min-width:44px;text-align:center;">1</span>
+          <div><div style="font-weight:700;font-size:13px;color:var(--tx);">Consolación</div><div style="font-size:11px;color:var(--t3);margin-top:2px;">Predijiste un ganador pero el partido terminó en empate</div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;padding:10px;background:rgba(232,84,84,0.07);border-radius:10px;border:1px solid rgba(232,84,84,0.18);">
+          <span style="font-family:var(--mono);font-weight:900;font-size:22px;color:var(--red);min-width:44px;text-align:center;">0</span>
+          <div><div style="font-weight:700;font-size:13px;color:var(--tx);">Sin puntos</div><div style="font-size:11px;color:var(--t3);margin-top:2px;">No acertaste el resultado ni el ganador (o predijiste empate y ganó alguien)</div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;padding:10px;background:rgba(212,168,83,0.12);border-radius:10px;border:1px solid rgba(212,168,83,0.3);">
+          <span style="font-weight:900;font-size:18px;color:var(--gold-lt);min-width:44px;text-align:center;">×2</span>
+          <div><div style="font-weight:700;font-size:13px;color:var(--gold-lt);">⭐ La Gran Final — Puntos dobles</div><div style="font-size:11px;color:var(--t3);margin-top:2px;">El partido final vale el doble: <strong style="color:var(--gold-lt);">10</strong> exacto · <strong style="color:var(--green);">6</strong> ganador · <strong style="color:var(--blue-lt);">2</strong> consolación</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cómo jugar -->
+    <div class="card" style="margin-bottom:12px;">
+      <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.8px;color:var(--blue);margin-bottom:14px;">🎯 Cómo Jugar</div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        ${[
+          ['1','Ingresa tus predicciones','En la pestaña <strong style="color:var(--tx);">Partidos</strong>, busca los partidos abiertos e ingresa el marcador que crees que va a salir. Puedes modificarla hasta que cierren las apuestas.'],
+          ['2','Cierre de apuestas','Las apuestas se cierran <strong style="color:var(--coral);">1 hora antes</strong> del inicio de cada partido. Después de ese momento no puedes cambiar tu predicción.'],
+          ['3','Resultados y puntos','Una vez finalizado el partido, el administrador ingresa el resultado final y los puntos se calculan automáticamente. Revisa la <strong style="color:var(--tx);">Tabla</strong> para ver tu posición.'],
+        ].map(([num, title, desc]) => `
+          <div style="display:flex;gap:12px;align-items:flex-start;">
+            <div style="width:28px;height:28px;background:var(--blue);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:white;flex-shrink:0;">${num}</div>
+            <div>
+              <div style="font-weight:700;font-size:13px;color:var(--tx);">${title}</div>
+              <div style="font-size:12px;color:var(--t3);margin-top:3px;line-height:1.5;">${desc}</div>
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>
+
+    <!-- Reglas generales -->
+    <div class="card" style="margin-bottom:12px;">
+      <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.8px;color:var(--blue);margin-bottom:14px;">📋 Reglas Generales</div>
+      <div style="display:flex;flex-direction:column;gap:7px;">
+        ${[
+          ['⚽','Una predicción por partido. Puedes actualizarla <strong style="color:var(--tx);">antes del cierre</strong>.'],
+          ['🔒','Las apuestas <strong style="color:var(--tx);">no se pueden modificar</strong> una vez iniciado el partido.'],
+          ['📊','El leaderboard se actualiza cuando el admin ingresa el resultado de cada partido.'],
+          ['🤝','En caso de empate en puntos en la tabla final, gana quien tenga <strong style="color:var(--tx);">más predicciones exactas (5 pts)</strong>.'],
+          ['🎯','<strong style="color:var(--tx);">No hay límite de predicciones</strong> — puedes apostar en todos los partidos del torneo.'],
+          ['🏆','Participan todos los que tengan acceso a la app con su <strong style="color:var(--tx);">cuenta Google</strong>.'],
+        ].map(([icon, text]) => `
+          <div style="display:flex;gap:10px;align-items:flex-start;padding:9px;background:var(--s3);border-radius:9px;">
+            <span style="font-size:15px;flex-shrink:0;line-height:1.4;">${icon}</span>
+            <span style="font-size:12px;color:var(--t2);line-height:1.5;">${text}</span>
+          </div>`).join('')}
+      </div>
+    </div>
+
+    <!-- Fases del torneo -->
+    <div class="card">
+      <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.8px;color:var(--blue);margin-bottom:12px;">🏟️ Calendario del Torneo</div>
+      <div style="display:flex;flex-direction:column;gap:5px;">
+        ${[
+          ['Jun 11 – 26','Fase de Grupos','48 equipos · 12 grupos',''],
+          ['Jun 27 – Jul 2','Ronda de 32','32 equipos · eliminación directa',''],
+          ['Jul 3 – 7','Octavos de Final','16 equipos',''],
+          ['Jul 8 – 11','Cuartos de Final','8 equipos',''],
+          ['Jul 14 – 15','Semifinales','4 equipos',''],
+          ['Jul 18','Tercer Puesto','',''],
+          ['Jul 19','⭐ La Gran Final','Puntos dobles','gold'],
+        ].map(([date, phase, detail, color]) => `
+          <div style="display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:8px;background:${color==='gold'?'rgba(212,168,83,0.1)':'var(--s3)'};${color==='gold'?'border:1px solid rgba(212,168,83,0.25);':''}">
+            <span style="font-size:10px;font-family:var(--mono);color:var(--t3);min-width:96px;flex-shrink:0;">${date}</span>
+            <span style="font-size:12px;font-weight:700;color:${color==='gold'?'var(--gold-lt)':'var(--tx)'};flex:1;">${phase}</span>
+            ${detail ? `<span style="font-size:10px;color:var(--t3);">${detail}</span>` : ''}
+          </div>`).join('')}
+      </div>
+    </div>
+
+  </div>`;
 }
 
 /* ── Boot ── */
