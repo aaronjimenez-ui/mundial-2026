@@ -411,7 +411,7 @@ async function loadUserPreds() {
 }
 
 async function loadAllPreds() {
-  const { data } = await sb.from('mundial_predictions').select('match_id, display_name, pred_home, pred_away, points');
+  const { data } = await sb.from('mundial_predictions').select('match_id, user_id, display_name, pred_home, pred_away, points');
   allPreds = {};
   (data || []).forEach(p => {
     if (!allPreds[p.match_id]) allPreds[p.match_id] = [];
@@ -702,7 +702,12 @@ async function savePred(matchId) {
     const isRLS = error.code === '42501' ||
       (error.message || '').toLowerCase().includes('row-level') ||
       (error.message || '').toLowerCase().includes('policy');
-    toast(isRLS ? '🔒 Partido cerrado — apuestas no permitidas' : '✗ Error al guardar. Intenta de nuevo.');
+    if (isRLS) {
+      const hadPrev = !!userPreds[matchId];
+      toast(hadPrev ? '🔒 Partido iniciado — tu apuesta anterior sigue guardada' : '🔒 Este partido ya no acepta apuestas');
+    } else {
+      toast('✗ Error al guardar. Intenta de nuevo.');
+    }
     return;
   }
 
@@ -1082,6 +1087,10 @@ async function setResult(matchId) {
 
   toast('✓ Resultado guardado — puntos calculados automáticamente');
   await loadAll();
+  const updatedMatch = matches.find(x => x.id === matchId);
+  if (updatedMatch && updatedMatch.status !== 'validated') {
+    toast('⚠ Resultado guardado pero los puntos no se calcularon. Verifica en Supabase.');
+  }
   renderMatches();
   renderLeaderboard();
   renderAdmin();
@@ -1089,7 +1098,9 @@ async function setResult(matchId) {
 
 async function deleteMatch(matchId) {
   const m = matches.find(x => x.id === matchId);
-  if (!confirm(`¿Eliminar "${m?.home_team} vs ${m?.away_team}"?\nSe borran todas las apuestas.`)) return;
+  const predCount = (allPreds[matchId] || []).length;
+  const warnPreds = predCount > 0 ? `\n⚠ Se eliminarán ${predCount} apuesta${predCount !== 1 ? 's' : ''} de participantes.` : '';
+  if (!confirm(`¿Eliminar "${m?.home_team} vs ${m?.away_team}"?${warnPreds}`)) return;
   await sb.from('mundial_matches').delete().eq('id', matchId);
   toast('✓ Partido eliminado');
   await loadAll();
@@ -1215,9 +1226,11 @@ function renderRules() {
   const pane = document.getElementById('pane-rules');
   if (!pane) return;
 
-  const players = leaderboard.length;
+  const paidCount = payments.filter(p => p.paid).length;
+  const players = payments.length > 0 ? paidCount : leaderboard.length;
   const pot = players * 10000;
   const fmtCLP = n => '$' + n.toLocaleString('es-CL');
+  const pozoNote = payments.length > 0 ? ` (${paidCount} de ${payments.length} han pagado)` : '';
 
   pane.innerHTML = `<div style="max-width:600px;margin:0 auto;">
 
@@ -1232,7 +1245,7 @@ function renderRules() {
         <div style="width:1px;background:rgba(212,168,83,0.2);"></div>
         <div style="flex:1;text-align:center;padding:12px 8px;background:rgba(212,168,83,0.08);border-radius:0 12px 12px 0;border:1px solid rgba(212,168,83,0.2);border-left:none;">
           <div style="font-family:var(--mono);font-size:26px;font-weight:900;color:var(--gold-lt);line-height:1;">${players > 0 ? fmtCLP(pot) : '—'}</div>
-          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--t3);margin-top:5px;">Pozo total${players > 0 ? ` · ${players} jugador${players !== 1 ? 'es' : ''}` : ''}</div>
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--t3);margin-top:5px;">Pozo total${players > 0 ? ` · ${players} jugador${players !== 1 ? 'es' : ''}` : ''}${pozoNote}</div>
         </div>
       </div>
       <div style="margin-top:10px;padding:9px 12px;background:var(--s3);border-radius:9px;font-size:12px;color:var(--t2);line-height:1.5;">
