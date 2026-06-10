@@ -506,8 +506,7 @@ function renderMatches() {
 
   /* ── Week selector ── */
   const currentWeekId = getDefaultWeek();
-  if (activeWeek > currentWeekId) activeWeek = currentWeekId;
-  const visibleWeeks = WEEKS.filter(w => w.id <= currentWeekId);
+  const visibleWeeks = WEEKS;
 
   let html = renderNextMatchSection();
   html += `<div style="margin-bottom:10px;">
