@@ -245,6 +245,7 @@
       <button class="tab-btn active" id="tabBtn-matches"     onclick="switchTab('matches')">Partidos</button>
       <button class="tab-btn"        id="tabBtn-leaderboard" onclick="switchTab('leaderboard')">Tabla</button>
       <button class="tab-btn"        id="tabBtn-pozo"        onclick="switchTab('pozo')">Apuestas</button>
+      <button class="tab-btn"        id="tabBtn-dinero"      onclick="switchTab('dinero')">Pozo</button>
       <button class="tab-btn"        id="tabBtn-rules"       onclick="switchTab('rules')">Reglas</button>
       <button class="tab-btn"        id="tabBtn-admin"       onclick="switchTab('admin')">Admin</button>
     </div>
@@ -255,6 +256,7 @@
     <div id="pane-matches"     class="fade-in"></div>
     <div id="pane-leaderboard" style="display:none;"></div>
     <div id="pane-pozo"        style="display:none;"></div>
+    <div id="pane-dinero"      style="display:none;"></div>
     <div id="pane-rules"       style="display:none;"></div>
     <div id="pane-admin"       style="display:none;"></div>
   </div>
@@ -283,6 +285,7 @@ let sb, currentUser = null; // session.user object de Supabase Auth
 let matches = [], userPreds = {}, leaderboard = [], payments = [], allPreds = {};
 let activeTab = 'matches', activeWeek = 1, activeGroup = 'Todos', adminUnlocked = false;
 let activeApuestasWeek = 1;
+let adminFilter = 'todos'; // 'todos' | 'pendientes'
 let _bootedForUserId = null; // evita bootApp() duplicado por múltiples eventos SIGNED_IN
 
 /* ── Flags (ISO 3166-1 alpha-2 codes → flagcdn.com) ── */
@@ -444,7 +447,10 @@ async function loadLeaderboard() {
       }
     }
   });
-  leaderboard = Object.values(board).sort((a, b) => b.total - a.total);
+  leaderboard = Object.values(board).sort((a, b) => {
+    if (b.total !== a.total) return b.total - a.total;
+    return (b.exact || 0) - (a.exact || 0); // desempate: más exactos primero
+  });
   updateHeaderPts();
 }
 
@@ -464,7 +470,7 @@ function switchTab(tab) {
   activeTab = tab;
   if (tab !== 'matches' && _countdownInterval) { clearInterval(_countdownInterval); _countdownInterval = null; }
   if (tab !== 'pozo' && _apuestasInterval) { clearInterval(_apuestasInterval); _apuestasInterval = null; }
-  ['matches','leaderboard','pozo','rules','admin'].forEach(t => {
+  ['matches','leaderboard','pozo','dinero','rules','admin'].forEach(t => {
     document.getElementById(`tabBtn-${t}`).classList.toggle('active', t === tab);
     const pane = document.getElementById(`pane-${t}`);
     pane.style.display = t === tab ? 'block' : 'none';
@@ -476,6 +482,7 @@ function render() {
   if (activeTab === 'matches')     renderMatches();
   if (activeTab === 'leaderboard') renderLeaderboard();
   if (activeTab === 'pozo')        renderPozo();
+  if (activeTab === 'dinero')      renderDinero();
   if (activeTab === 'rules')       renderRules();
   if (activeTab === 'admin')       renderAdmin();
 }
@@ -666,6 +673,17 @@ function buildMatchCard(m) {
     </div>`;
   }
 
+  const isAdmin = currentUser?.email === 'jimenezaaron5@gmail.com';
+  const isLive = !m.is_finished && new Date(m.match_date).getTime() <= Date.now();
+  const adminInlineForm = (isAdmin && isLive) ? `
+    <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <span style="font-size:11px;color:var(--t3);font-weight:600;">Admin resultado:</span>
+      <input id="crh-${m.id}" type="number" min="0" max="30" placeholder="0" style="width:48px;text-align:center;" class="input" />
+      <span style="color:var(--t3);">–</span>
+      <input id="cra-${m.id}" type="number" min="0" max="30" placeholder="0" style="width:48px;text-align:center;" class="input" />
+      <button class="btn btn-primary btn-sm" onclick="setResultFromCard('${m.id}')">✓ Finalizar</button>
+    </div>` : '';
+
   return `<div class="card">
     <!-- Header -->
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;">
@@ -695,7 +713,7 @@ function buildMatchCard(m) {
       </div>
     </div>
 
-    ${predArea}
+    ${predArea}${adminInlineForm}
   </div>`;
 }
 
@@ -810,7 +828,18 @@ function renderPozo() {
   }
 
   filtered.forEach(m => {
-    const preds = (allPreds[m.id] || []).sort((a, b) => a.display_name.localeCompare(b.display_name));
+    const preds = (allPreds[m.id] || []).sort((a, b) => {
+      if (m.is_finished) {
+        const score = p => {
+          if (p.pred_home === m.home_score && p.pred_away === m.away_score) return 0; // exacto
+          if ((p.points || 0) > 0) return 1; // acierto
+          return 2; // incorrecto
+        };
+        const diff = score(a) - score(b);
+        if (diff !== 0) return diff;
+      }
+      return a.display_name.localeCompare(b.display_name);
+    });
     const result = m.is_finished ? `${m.home_score} – ${m.away_score}` : 'En curso';
     const resultColor = m.is_finished ? 'var(--gold-lt)' : 'var(--green)';
 
@@ -856,6 +885,59 @@ function renderPozo() {
       await loadAllPreds();
       if (activeTab === 'pozo') renderPozo();
     }, 60000);
+  }
+
+  pane.innerHTML = html;
+}
+
+/* ── POZO (público) ── */
+function renderDinero() {
+  const pane = document.getElementById('pane-dinero');
+  const paid   = payments.filter(p => p.paid);
+  const unpaid = payments.filter(p => !p.paid);
+  const total  = paid.reduce((s, p) => s + p.amount, 0);
+  const fmtCLP = n => '$' + n.toLocaleString('es-CL');
+
+  let html = `
+  <div class="card" style="text-align:center;margin-bottom:16px;border-color:rgba(212,175,55,0.35);background:rgba(212,175,55,0.05);">
+    <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.8px;color:var(--gold);margin-bottom:10px;">💰 Pozo acumulado</div>
+    <div style="font-family:var(--mono);font-size:36px;font-weight:900;color:var(--gold-lt);line-height:1;">${fmtCLP(total)}</div>
+    <div style="font-size:12px;color:var(--t3);margin-top:6px;">${paid.length} de ${payments.length} participante${payments.length!==1?'s':''} han pagado</div>
+  </div>`;
+
+  if (payments.length === 0) {
+    html += `<div class="empty-state"><div class="icon">💸</div><div class="title">Sin pagos registrados</div><div class="sub">El administrador registra los pagos en el panel Admin</div></div>`;
+    pane.innerHTML = html; return;
+  }
+
+  if (paid.length > 0) {
+    html += `<div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.8px;color:var(--t3);margin-bottom:8px;">✅ Pagaron (${paid.length})</div>`;
+    paid.forEach(p => {
+      const fecha = p.paid_at ? new Date(new Date(p.paid_at).getTime() - 4*3600000).toLocaleDateString('es-CL',{day:'2-digit',month:'short'}) : '';
+      html += `<div class="card" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;margin-bottom:8px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:18px;">✅</span>
+          <div>
+            <div style="font-weight:700;font-size:14px;color:var(--tx);">${p.display_name}</div>
+            ${fecha ? `<div style="font-size:11px;color:var(--t3);">Pagó el ${fecha}</div>` : ''}
+          </div>
+        </div>
+        <div style="font-family:var(--mono);font-weight:800;color:var(--green);font-size:15px;">${fmtCLP(p.amount)}</div>
+      </div>`;
+    });
+  }
+
+  if (unpaid.length > 0) {
+    html += `<div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.8px;color:var(--t3);margin:16px 0 8px;">⏳ Pendientes (${unpaid.length})</div>`;
+    unpaid.forEach(p => {
+      html += `<div class="card" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;margin-bottom:8px;opacity:0.65;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:18px;">⏳</span>
+          <div style="font-weight:700;font-size:14px;color:var(--tx);">${p.display_name}</div>
+        </div>
+        <div style="font-family:var(--mono);font-weight:800;color:var(--t3);font-size:15px;">${fmtCLP(p.amount)}</div>
+      </div>`;
+    });
   }
 
   pane.innerHTML = html;
@@ -999,12 +1081,23 @@ function renderAdmin() {
 
   <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.8px;color:var(--t3);margin-bottom:10px;">
     Resultados · ${matches.length} partidos cargados
+  </div>
+  <div style="display:flex;gap:8px;margin-bottom:12px;">
+    <button class="pill${adminFilter==='todos'?' active':''}" onclick="adminFilter='todos';renderAdmin()">Todos</button>
+    <button class="pill${adminFilter==='pendientes'?' active':''}" onclick="adminFilter='pendientes';renderAdmin()">⏳ Pendientes resultado</button>
   </div>`;
+
+  const now = Date.now();
+  const filteredMatches = adminFilter === 'pendientes'
+    ? matches.filter(m => !m.is_finished && new Date(m.match_date).getTime() <= now)
+    : matches;
 
   if (matches.length === 0) {
     html += `<div class="card" style="text-align:center;padding:24px;color:var(--t3);">No hay partidos cargados.</div>`;
+  } else if (filteredMatches.length === 0) {
+    html += `<div class="card" style="text-align:center;padding:24px;color:var(--t3);">Sin partidos pendientes de resultado.</div>`;
   } else {
-    matches.forEach(m => {
+    filteredMatches.forEach(m => {
       let statusBadge;
       if (m.status === 'validated') {
         statusBadge = `<span class="badge badge-win" style="font-size:10px;">✓ ${m.home_score}:${m.away_score}</span>`;
@@ -1106,6 +1199,7 @@ async function togglePayment(id, paid) {
   await loadPayments();
   renderAdmin();
   if (activeTab === 'pozo') renderPozo();
+  if (activeTab === 'dinero') renderDinero();
 }
 
 async function deletePayment(id) {
@@ -1114,6 +1208,7 @@ async function deletePayment(id) {
   await loadPayments();
   renderAdmin();
   if (activeTab === 'pozo') renderPozo();
+  if (activeTab === 'dinero') renderDinero();
 }
 
 async function addMatch() {
@@ -1175,6 +1270,21 @@ async function setResult(matchId) {
   renderMatches();
   renderLeaderboard();
   renderAdmin();
+}
+
+async function setResultFromCard(matchId) {
+  const rh = parseInt(document.getElementById('crh-' + matchId)?.value);
+  const ra = parseInt(document.getElementById('cra-' + matchId)?.value);
+  if (isNaN(rh) || isNaN(ra) || rh < 0 || ra < 0) { toast('⚠ Ingresa el resultado'); return; }
+  const m = matches.find(x => x.id === matchId);
+  if (!confirm(`¿Confirmar resultado?\n${m.home_team} ${rh} – ${ra} ${m.away_team}`)) return;
+  const { error } = await sb.from('mundial_matches')
+    .update({ home_score: rh, away_score: ra, is_finished: true, status: 'confirmed' })
+    .eq('id', matchId);
+  if (error) { toast('✗ Error al guardar'); return; }
+  toast('✓ Resultado guardado');
+  await loadAll();
+  render();
 }
 
 async function deleteMatch(matchId) {
