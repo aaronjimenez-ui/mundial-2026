@@ -269,7 +269,7 @@ const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsI
 
 /* ── Tournament weeks (CLT dates) ── */
 const WEEKS = [
-  { id: 1, label: 'Semana 1',    dates: 'Jun 10-17',      start: '2026-06-10', end: '2026-06-18' },
+  { id: 1, label: 'Semana 1',    dates: 'Jun 11-17',      start: '2026-06-11', end: '2026-06-18' },
   { id: 2, label: 'Semana 2',    dates: 'Jun 18-24',      start: '2026-06-18', end: '2026-06-25' },
   { id: 3, label: 'Semana 3',    dates: 'Jun 25-26',      start: '2026-06-25', end: '2026-06-27' },
   { id: 4, label: 'Ronda de 32', dates: 'Jun 27 – Jul 2', start: '2026-06-27', end: '2026-07-03' },
@@ -282,6 +282,7 @@ const WEEKS = [
 let sb, currentUser = null; // session.user object de Supabase Auth
 let matches = [], userPreds = {}, leaderboard = [], payments = [], allPreds = {};
 let activeTab = 'matches', activeWeek = 1, activeGroup = 'Todos', adminUnlocked = false;
+let activeApuestasWeek = 1;
 let _bootedForUserId = null; // evita bootApp() duplicado por múltiples eventos SIGNED_IN
 
 /* ── Flags (ISO 3166-1 alpha-2 codes → flagcdn.com) ── */
@@ -425,13 +426,23 @@ async function loadPayments() {
 }
 
 async function loadLeaderboard() {
-  const { data } = await sb.from('mundial_predictions').select('user_id, display_name, points');
+  const { data } = await sb.from('mundial_predictions')
+    .select('user_id, display_name, points, pred_home, pred_away, match_id');
   const board = {};
   (data || []).forEach(p => {
     const uid = p.user_id;
-    if (!board[uid]) board[uid] = { uid, name: p.display_name || 'Sin nombre', total: 0 };
+    if (!board[uid]) board[uid] = { uid, name: p.display_name || 'Sin nombre', total: 0, exact: 0, correct: 0, played: 0 };
     board[uid].total += (p.points || 0);
     if (p.display_name) board[uid].name = p.display_name; // usa el nombre más reciente
+    const m = matches.find(x => x.id === p.match_id);
+    if (m && m.is_finished) {
+      board[uid].played = (board[uid].played || 0) + 1;
+      if (p.pred_home === m.home_score && p.pred_away === m.away_score) {
+        board[uid].exact = (board[uid].exact || 0) + 1;
+      } else if ((p.points || 0) > 0) {
+        board[uid].correct = (board[uid].correct || 0) + 1;
+      }
+    }
   });
   leaderboard = Object.values(board).sort((a, b) => b.total - a.total);
   updateHeaderPts();
@@ -452,6 +463,7 @@ function updateHeaderPts() {
 function switchTab(tab) {
   activeTab = tab;
   if (tab !== 'matches' && _countdownInterval) { clearInterval(_countdownInterval); _countdownInterval = null; }
+  if (tab !== 'pozo' && _apuestasInterval) { clearInterval(_apuestasInterval); _apuestasInterval = null; }
   ['matches','leaderboard','pozo','rules','admin'].forEach(t => {
     document.getElementById(`tabBtn-${t}`).classList.toggle('active', t === tab);
     const pane = document.getElementById(`pane-${t}`);
@@ -545,6 +557,30 @@ function renderMatches() {
     </div>`;
     dayMatches.forEach(m => { html += buildMatchCard(m); });
   });
+
+  /* ── Resumen personal partidos finalizados ── */
+  const myFinished = matches.filter(m => m.is_finished && userPreds[m.id]);
+  if (myFinished.length > 0) {
+    const myExact = myFinished.filter(m => {
+      const p = userPreds[m.id];
+      return p.pred_home === m.home_score && p.pred_away === m.away_score;
+    }).length;
+    const myCorrect = myFinished.filter(m => (userPreds[m.id]?.points || 0) > 0 &&
+      !(userPreds[m.id].pred_home === m.home_score && userPreds[m.id].pred_away === m.away_score)
+    ).length;
+    const myPts = myFinished.reduce((s, m) => s + (userPreds[m.id]?.points || 0), 0);
+
+    html += `
+  <div class="card" style="margin-top:16px;border-color:rgba(74,144,217,0.25);background:rgba(74,144,217,0.04);">
+    <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.8px;color:var(--blue);margin-bottom:10px;">📊 Mis resultados</div>
+    <div style="display:flex;justify-content:space-around;text-align:center;">
+      <div><div style="font-family:var(--mono);font-size:22px;font-weight:900;color:var(--tx);">${myPts}</div><div style="font-size:10px;color:var(--t3);">puntos</div></div>
+      <div><div style="font-family:var(--mono);font-size:22px;font-weight:900;color:var(--gold-lt);">${myExact}</div><div style="font-size:10px;color:var(--t3);">🎯 exactos</div></div>
+      <div><div style="font-family:var(--mono);font-size:22px;font-weight:900;color:var(--green);">${myCorrect}</div><div style="font-size:10px;color:var(--t3);">✅ aciertos</div></div>
+      <div><div style="font-family:var(--mono);font-size:22px;font-weight:900;color:var(--t2);">${myFinished.length}</div><div style="font-size:10px;color:var(--t3);">apostados</div></div>
+    </div>
+  </div>`;
+  }
 
   pane.innerHTML = html;
   startCountdown();
@@ -718,6 +754,8 @@ async function savePred(matchId) {
 }
 
 /* ── APUESTAS ── */
+function setApuestasWeek(w) { activeApuestasWeek = w; renderPozo(); }
+
 function renderPozo() {
   const pane = document.getElementById('pane-pozo');
   const now = Date.now();
@@ -736,9 +774,42 @@ function renderPozo() {
     return;
   }
 
+  /* Determinar semanas con al menos un partido iniciado */
+  const weeksWithStarted = WEEKS.filter(w =>
+    started.some(m => { const d = cltDate(m.match_date); return d >= w.start && d < w.end; })
+  );
+
+  /* Si la semana activa no tiene partidos, usar la primera con partidos */
+  if (weeksWithStarted.length > 0 && !weeksWithStarted.find(w => w.id === activeApuestasWeek)) {
+    activeApuestasWeek = weeksWithStarted[weeksWithStarted.length - 1].id;
+  }
+
+  /* Filtrar partidos por semana activa */
+  const week = WEEKS.find(w => w.id === activeApuestasWeek);
+  const filtered = week
+    ? started.filter(m => { const d = cltDate(m.match_date); return d >= week.start && d < week.end; })
+    : started;
+
   let html = `<div style="font-size:11px;color:var(--t3);margin-bottom:14px;line-height:1.5;">Las apuestas se revelan cuando el partido comienza 🔒</div>`;
 
-  started.forEach(m => {
+  /* Pills de semana (solo si hay más de una semana con partidos) */
+  if (weeksWithStarted.length > 1) {
+    html += `<div class="hscroll" style="margin-bottom:14px;">
+      ${weeksWithStarted.map(w => `
+        <button class="pill${activeApuestasWeek===w.id?' active':''}" onclick="setApuestasWeek(${w.id})" style="display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 14px;">
+          <span style="font-size:12px;">${w.label}</span>
+          <span style="font-size:10px;opacity:0.7;font-weight:500;">${w.dates}</span>
+        </button>`).join('')}
+    </div>`;
+  }
+
+  if (filtered.length === 0) {
+    html += `<div class="empty-state"><div class="icon">🔍</div><div class="title">Sin partidos esta semana</div><div class="sub">Selecciona otra semana para ver las apuestas</div></div>`;
+    pane.innerHTML = html;
+    return;
+  }
+
+  filtered.forEach(m => {
     const preds = (allPreds[m.id] || []).sort((a, b) => a.display_name.localeCompare(b.display_name));
     const result = m.is_finished ? `${m.home_score} – ${m.away_score}` : 'En curso';
     const resultColor = m.is_finished ? 'var(--gold-lt)' : 'var(--green)';
@@ -777,6 +848,15 @@ function renderPozo() {
 
     html += `</div>`;
   });
+
+  /* Auto-refresh: iniciar interval si hay partidos en curso */
+  const liveNow = started.filter(m => !m.is_finished);
+  if (liveNow.length > 0 && !_apuestasInterval) {
+    _apuestasInterval = setInterval(async () => {
+      await loadAllPreds();
+      if (activeTab === 'pozo') renderPozo();
+    }, 60000);
+  }
 
   pane.innerHTML = html;
 }
@@ -834,6 +914,7 @@ function renderLeaderboard() {
             ${p.name}
             ${isMe ? `<span style="font-size:9px;background:rgba(74,144,217,0.15);color:var(--blue);border-radius:4px;padding:2px 6px;margin-left:6px;font-weight:700;">TÚ</span>` : ''}
           </div>
+          ${(p.played || 0) > 0 ? `<div style="font-size:11px;color:var(--t3);margin-top:3px;">🎯 ${p.exact || 0} exactos &nbsp;·&nbsp; ✅ ${p.correct || 0} aciertos &nbsp;·&nbsp; ${p.played} apostados</div>` : ''}
         </div>
         <div style="text-align:right;flex-shrink:0;">
           <div style="font-family:var(--mono);font-size:${top3?'26':'20'}px;font-weight:700;color:${ptColor};line-height:1;">${p.total}</div>
@@ -888,7 +969,7 @@ function renderAdmin() {
       <div><label>Visitante</label><input type="text" id="addAway" class="input" placeholder="ej: Francia" list="teamList" /></div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
-      <div><label>Fecha y hora (CLT)</label><input type="datetime-local" id="addDate" class="input" min="2026-06-10T00:00" /></div>
+      <div><label>Fecha y hora (CLT)</label><input type="datetime-local" id="addDate" class="input" min="2026-06-11T00:00" /></div>
       <div><label>Fase</label>
         <select id="addPhase" class="input">
           <option>Fase de Grupos</option>
@@ -1109,6 +1190,7 @@ async function deleteMatch(matchId) {
 
 /* ── Next Match + Countdown ── */
 let _countdownInterval = null;
+let _apuestasInterval = null;
 
 function getNextMatch() {
   const now = Date.now();
