@@ -774,7 +774,7 @@ function renderAdmin() {
 
   if (!adminUnlocked) {
     // Verificar si el usuario logueado es el admin
-    if (currentUser && currentUser.email === 'aaron.jimenez@nubox.com') {
+    if (currentUser && currentUser.email === 'jimenezaaron5@gmail.com') {
       adminUnlocked = true;
     } else {
       pane.innerHTML = `<div style="max-width:340px;margin:36px auto;">
@@ -1190,7 +1190,7 @@ async function bootApp() {
   // Tab Admin solo visible para el administrador
   const adminTabBtn = document.getElementById('tabBtn-admin');
   if (adminTabBtn) {
-    adminTabBtn.style.display = currentUser?.email === 'aaron.jimenez@nubox.com' ? '' : 'none';
+    adminTabBtn.style.display = currentUser?.email === 'jimenezaaron5@gmail.com' ? '' : 'none';
   }
   activeWeek = getDefaultWeek();
   document.getElementById('pane-matches').innerHTML = '<div class="spinner"></div>';
