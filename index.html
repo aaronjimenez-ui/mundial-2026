@@ -1931,7 +1931,9 @@ function showUpdateBanner() {
 async function checkVersion() {
   try {
     const { data } = await sb.from('mundial_config').select('value').eq('key', 'app_version').single();
-    if (data?.value && data.value !== APP_VERSION) showUpdateBanner();
+    if (data?.value && data.value !== APP_VERSION) {
+      location.href = location.pathname + '?_r=' + Date.now();
+    }
   } catch (e) { /* no bloquear si falla */ }
 }
 
