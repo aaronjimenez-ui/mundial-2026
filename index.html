@@ -651,62 +651,53 @@ function logout() {
 /* ── Data ── */
 async function loadAll(onProgress) {
   onProgress?.(1);
-  await Promise.all([loadMatches(), loadUserPreds()]);
+  // 3 queries en paralelo en vez de 5 secuenciales:
+  // mundial_predictions se consulta UNA vez y construye userPreds + allPreds + leaderboard
+  const [matchRes, predRes, payRes] = await Promise.all([
+    sb.from('mundial_matches').select('*').order('match_date', { ascending: true }),
+    sb.from('mundial_predictions').select('match_id, user_id, display_name, pred_home, pred_away, points'),
+    sb.from('mundial_payments').select('*').order('display_name', { ascending: true })
+  ]);
+
   onProgress?.(2);
-  await Promise.all([loadLeaderboard(), loadPayments(), loadAllPreds()]);
-  onProgress?.(3);
-}
 
-async function loadMatches() {
-  const { data } = await sb.from('mundial_matches').select('*').order('match_date', { ascending: true });
-  matches = data || [];
+  matches  = matchRes.data || [];
+  payments = payRes.data  || [];
   checkLiveScorePolling();
-}
 
-async function loadUserPreds() {
-  const { data } = await sb.from('mundial_predictions').select('*').eq('user_id', currentUser.id);
+  const preds = predRes.data || [];
+  const matchMap = new Map(matches.map(m => [m.id, m]));
+
   userPreds = {};
-  (data || []).forEach(p => { userPreds[p.match_id] = p; });
-}
+  allPreds  = {};
+  const board = {};
 
-async function loadAllPreds() {
-  const { data } = await sb.from('mundial_predictions').select('match_id, user_id, display_name, pred_home, pred_away, points');
-  allPreds = {};
-  (data || []).forEach(p => {
+  preds.forEach(p => {
+    // userPreds
+    if (p.user_id === currentUser.id) userPreds[p.match_id] = p;
+
+    // allPreds
     if (!allPreds[p.match_id]) allPreds[p.match_id] = [];
     allPreds[p.match_id].push(p);
-  });
-}
 
-async function loadPayments() {
-  const { data } = await sb.from('mundial_payments').select('*').order('display_name', { ascending: true });
-  payments = data || [];
-}
-
-async function loadLeaderboard() {
-  const { data } = await sb.from('mundial_predictions')
-    .select('user_id, display_name, points, pred_home, pred_away, match_id');
-  const board = {};
-  (data || []).forEach(p => {
+    // leaderboard
     const uid = p.user_id;
     if (!board[uid]) board[uid] = { uid, name: p.display_name || 'Sin nombre', total: 0, exact: 0, correct: 0, played: 0 };
     board[uid].total += (p.points || 0);
-    if (p.display_name) board[uid].name = p.display_name; // usa el nombre más reciente
-    const m = matches.find(x => x.id === p.match_id);
+    if (p.display_name) board[uid].name = p.display_name;
+    const m = matchMap.get(p.match_id);
     if (m && m.is_finished) {
-      board[uid].played = (board[uid].played || 0) + 1;
-      if (p.pred_home === m.home_score && p.pred_away === m.away_score) {
-        board[uid].exact = (board[uid].exact || 0) + 1;
-      } else if ((p.points || 0) > 0) {
-        board[uid].correct = (board[uid].correct || 0) + 1;
-      }
+      board[uid].played++;
+      if (p.pred_home === m.home_score && p.pred_away === m.away_score) board[uid].exact++;
+      else if ((p.points || 0) > 0) board[uid].correct++;
     }
   });
-  leaderboard = Object.values(board).sort((a, b) => {
-    if (b.total !== a.total) return b.total - a.total;
-    return (b.exact || 0) - (a.exact || 0); // desempate: más exactos primero
-  });
+
+  leaderboard = Object.values(board).sort((a, b) =>
+    b.total !== a.total ? b.total - a.total : (b.exact || 0) - (a.exact || 0)
+  );
   updateHeaderPts();
+  onProgress?.(3);
 }
 
 function getMyDisplayName() {
