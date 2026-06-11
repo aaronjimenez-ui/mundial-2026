@@ -2061,7 +2061,8 @@ async function bootApp() {
   }
   activeWeek = getDefaultWeek();
   showLoader();
-  // Fake progress: la barra avanza sola mientras Supabase responde (cold start puede tardar 15-25s)
+  // Fake progress: la barra avanza sola mientras Supabase responde (cold start puede tardar 15-40s)
+  const _loSub = (msg) => { const el = document.querySelector('#loadOverlay .lo-sub'); if (el) el.textContent = msg; };
   const _fp = [
     setTimeout(() => _loBar(22), 1200),
     setTimeout(() => _loBar(36), 2800),
@@ -2071,6 +2072,11 @@ async function bootApp() {
     setTimeout(() => _loBar(62), 17000),
     setTimeout(() => _loBar(66), 23000),
     setTimeout(() => _loBar(70), 30000),
+    setTimeout(() => { _loBar(73); _loSub('Conectando con el servidor...'); }, 33000),
+    setTimeout(() => _loBar(76), 38000),
+    setTimeout(() => _loBar(79), 44000),
+    setTimeout(() => _loBar(82), 50000),
+    setTimeout(() => _loBar(85), 55000),
   ];
   const _clearFp = () => _fp.forEach(clearTimeout);
   try {
@@ -2087,8 +2093,8 @@ async function bootApp() {
     document.getElementById('pane-matches').innerHTML =
       `<div class="empty-state">
          <div class="icon" style="color:var(--red);">⚠</div>
-         <div class="title">${isTimeout ? 'Carga lenta' : 'Error de conexión'}</div>
-         <div class="sub">${isTimeout ? 'Supabase tardó demasiado en responder.' : esc(e.message || 'Error desconocido')}<br>
+         <div class="title">${isTimeout ? 'Servidor lento' : 'Error de conexión'}</div>
+         <div class="sub">${isTimeout ? 'El servidor tardó en responder. Puede ocurrir en la primera carga del día — reintenta y debería ir más rápido.' : esc(e.message || 'Error desconocido')}<br>
            <button class="btn btn-ghost btn-sm" onclick="location.href=location.pathname+'?_r='+Date.now()" style="margin-top:12px;">↻ Reintentar</button>
          </div>
        </div>`;
