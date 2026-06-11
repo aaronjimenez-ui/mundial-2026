@@ -1676,12 +1676,13 @@ async function loadMatches() {
 }
 
 function checkLiveScorePolling() {
-  const hasLive = matches.some(m => m.status === 'live');
+  const hasLive = matches.some(m => !m.is_finished && getLock(m).type === 'live');
   if (hasLive && !_liveScoreInterval) {
     _liveScoreInterval = setInterval(async () => {
       await loadMatches();
       if (activeTab === 'matches') renderMatches();
-      if (!matches.some(m => m.status === 'live')) {
+      renderLiveStrip();
+      if (!matches.some(m => !m.is_finished && getLock(m).type === 'live')) {
         clearInterval(_liveScoreInterval);
         _liveScoreInterval = null;
       }
