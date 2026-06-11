@@ -1992,16 +1992,27 @@ async function bootApp() {
   }
   activeWeek = getDefaultWeek();
   showLoader();
+  // Fake progress: la barra avanza sola mientras Supabase responde (cold start puede tardar ~10s)
+  const _fp = [
+    setTimeout(() => _loBar(22), 1200),
+    setTimeout(() => _loBar(36), 2800),
+    setTimeout(() => _loBar(48), 5000),
+    setTimeout(() => _loBar(54), 8000),
+  ];
+  const _clearFp = () => _fp.forEach(clearTimeout);
   try {
     await loadAll(step => {
-      if (step === 2) { _loBar(58); _loStep(2); }
+      _clearFp();
+      if (step === 2) { _loBar(62); _loStep(2); }
       if (step === 3) { _loBar(92); _loStep(3); }
     });
+    _clearFp();
     _loBar(100);
-    await new Promise(r => setTimeout(r, 380));
+    await new Promise(r => setTimeout(r, 350));
     hideLoader();
     render();
   } catch (e) {
+    _clearFp();
     console.error(e);
     hideLoader();
     document.getElementById('pane-matches').innerHTML =
