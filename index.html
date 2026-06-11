@@ -649,6 +649,30 @@ async function loadAll(onProgress) {
   onProgress?.(3);
 }
 
+function rebuildLeaderboard() {
+  const matchMap = new Map(matches.map(m => [m.id, m]));
+  const board = {};
+  Object.values(allPreds).flat().forEach(p => {
+    const uid = p.user_id;
+    if (!board[uid]) board[uid] = { uid, name: p.display_name || 'Sin nombre', total: 0, exact: 0, correct: 0, played: 0, hasLive: false };
+    if (p.display_name) board[uid].name = p.display_name;
+    const m = matchMap.get(p.match_id);
+    if (m && m.is_finished) {
+      board[uid].total += (p.points || 0);
+      board[uid].played++;
+      if (p.pred_home === m.home_score && p.pred_away === m.away_score) board[uid].exact++;
+      else if ((p.points || 0) > 0) board[uid].correct++;
+    } else if (m && !m.is_finished && getLock(m).type === 'live' && m.home_score !== null && m.away_score !== null) {
+      board[uid].total += calcPointsLive(p.pred_home, p.pred_away, m.home_score, m.away_score, m.is_double_points);
+      board[uid].hasLive = true;
+    }
+  });
+  leaderboard = Object.values(board).sort((a, b) =>
+    b.total !== a.total ? b.total - a.total : (b.exact || 0) - (a.exact || 0)
+  );
+  updateHeaderPts();
+}
+
 function getMyDisplayName() {
   if (!currentUser) return '';
   return currentUser.user_metadata?.full_name || currentUser.email.split('@')[0];
@@ -1694,8 +1718,10 @@ function checkLiveScorePolling() {
   if (hasLive && !_liveScoreInterval) {
     _liveScoreInterval = setInterval(async () => {
       await loadMatches();
-      if (activeTab === 'matches') renderMatches();
+      rebuildLeaderboard();
       renderLiveStrip();
+      if (activeTab === 'matches') renderMatches();
+      if (activeTab === 'leaderboard') renderLeaderboard();
       if (!matches.some(m => !m.is_finished && getLock(m).type === 'live')) {
         clearInterval(_liveScoreInterval);
         _liveScoreInterval = null;
