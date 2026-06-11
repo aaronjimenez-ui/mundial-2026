@@ -2079,27 +2079,41 @@ async function bootApp() {
       if (step === 2) { _clearFp(); _loBar(62); _loStep(2); }
       if (step === 3) { _loBar(92); _loStep(3); }
     });
-    _clearFp();
-    _loBar(100);
-    await new Promise(r => setTimeout(r, 350));
-    hideLoader();
-    render();
-    checkVersion();
-    if (!_versionCheckInterval) {
-      _versionCheckInterval = setInterval(checkVersion, 5 * 60 * 1000);
-    }
   } catch (e) {
     _clearFp();
-    console.error(e);
+    console.error('loadAll error:', e);
     hideLoader();
     document.getElementById('pane-matches').innerHTML =
       `<div class="empty-state">
          <div class="icon" style="color:var(--red);">⚠</div>
          <div class="title">Error de conexión</div>
          <div class="sub">Verifica tu conexión.<br>
-           <button class="btn btn-ghost btn-sm" onclick="refreshAll()" style="margin-top:12px;">↻ Reintentar</button>
+           <button class="btn btn-ghost btn-sm" onclick="location.reload()" style="margin-top:12px;">↻ Reintentar</button>
          </div>
        </div>`;
+    return;
+  }
+
+  _clearFp();
+  _loBar(100);
+  await new Promise(r => setTimeout(r, 350));
+  hideLoader();
+
+  try {
+    render();
+  } catch (e) {
+    console.error('render error:', e.message, e.stack);
+    document.getElementById('pane-matches').innerHTML =
+      `<div class="empty-state">
+         <div class="icon" style="color:var(--red);">⚠</div>
+         <div class="title">Error al mostrar datos</div>
+         <div class="sub" style="font-family:var(--mono);font-size:11px;">${esc(e.message)}</div>
+       </div>`;
+  }
+
+  checkVersion();
+  if (!_versionCheckInterval) {
+    _versionCheckInterval = setInterval(checkVersion, 5 * 60 * 1000);
   }
 }
 
