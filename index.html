@@ -344,9 +344,11 @@ function fmtDateHeader(dateStr) {
 }
 
 function getLock(m) {
+  const LOCK_MS = 60 * 60 * 1000; // cierre 1h antes del partido
   if (m.is_finished) return { locked: true, type: 'finished', label: 'Finalizado' };
   const diff = new Date(m.match_date) - Date.now();
-  if (diff <= 0) return { locked: true, type: 'live', label: 'En curso' };
+  if (diff <= 0)      return { locked: true, type: 'live',    label: 'En curso' };
+  if (diff <= LOCK_MS) return { locked: true, type: 'closing', label: '🔒 Cerrado' };
   const mins = Math.floor(diff / 60000);
   const hrs  = Math.floor(mins / 60);
   const days = Math.floor(hrs  / 24);
