@@ -2067,8 +2067,7 @@ async function bootApp() {
   const _clearFp = () => _fp.forEach(clearTimeout);
   try {
     await loadAll(step => {
-      _clearFp();
-      if (step === 2) { _loBar(62); _loStep(2); }
+      if (step === 2) { _clearFp(); _loBar(62); _loStep(2); }
       if (step === 3) { _loBar(92); _loStep(3); }
     });
     _clearFp();
