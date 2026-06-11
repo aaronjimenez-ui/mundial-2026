@@ -412,6 +412,7 @@ async function loadAll() {
 async function loadMatches() {
   const { data } = await sb.from('mundial_matches').select('*').order('match_date', { ascending: true });
   matches = data || [];
+  checkLiveScorePolling();
 }
 
 async function loadUserPreds() {
@@ -1340,6 +1341,24 @@ async function deleteMatch(matchId) {
 /* ── Next Match + Countdown ── */
 let _countdownInterval = null;
 let _apuestasInterval = null;
+let _liveScoreInterval = null;
+
+function checkLiveScorePolling() {
+  const hasLive = matches.some(m => m.status === 'live');
+  if (hasLive && !_liveScoreInterval) {
+    _liveScoreInterval = setInterval(async () => {
+      await loadMatches();
+      if (activeTab === 'matches') renderMatches();
+      if (!matches.some(m => m.status === 'live')) {
+        clearInterval(_liveScoreInterval);
+        _liveScoreInterval = null;
+      }
+    }, 30000);
+  } else if (!hasLive && _liveScoreInterval) {
+    clearInterval(_liveScoreInterval);
+    _liveScoreInterval = null;
+  }
+}
 
 function getNextMatch() {
   const now = Date.now();
