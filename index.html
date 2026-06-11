@@ -535,7 +535,7 @@
 /* ── Config ── */
 const SUPA_URL = 'https://okqwgsjhosfcdputpxlw.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9rcXdnc2pob3NmY2RwdXRweGx3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNzI2MTcsImV4cCI6MjA5MDY0ODYxN30.pZGeFbydGY6ilUhwNX77ax5HEmed0gSBUIoNOvW1kPE';
-const APP_VERSION = '2026-06-11-01';
+const APP_VERSION = '2026-06-11-02';
 
 /* ── Tournament weeks (CLT dates) ── */
 const WEEKS = [
@@ -2082,13 +2082,14 @@ async function bootApp() {
     _clearFp();
     console.error('loadAll error:', e);
     hideLoader();
+    checkVersion(); // mostrar banner de actualización aunque loadAll falle
     const isTimeout = (e.message || '').includes('Timeout');
     document.getElementById('pane-matches').innerHTML =
       `<div class="empty-state">
          <div class="icon" style="color:var(--red);">⚠</div>
          <div class="title">${isTimeout ? 'Carga lenta' : 'Error de conexión'}</div>
          <div class="sub">${isTimeout ? 'Supabase tardó demasiado en responder.' : esc(e.message || 'Error desconocido')}<br>
-           <button class="btn btn-ghost btn-sm" onclick="location.reload()" style="margin-top:12px;">↻ Reintentar</button>
+           <button class="btn btn-ghost btn-sm" onclick="location.href=location.pathname+'?_r='+Date.now()" style="margin-top:12px;">↻ Reintentar</button>
          </div>
        </div>`;
     return;
