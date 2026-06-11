@@ -677,18 +677,16 @@ async function loadAll(onProgress) {
   onProgress?.(1);
   // 3 queries en paralelo en vez de 5 secuenciales:
   // mundial_predictions se consulta UNA vez y construye userPreds + allPreds + leaderboard
-  const [matchRes, predRes, payRes, cfgRes] = await Promise.all([
+  const [matchRes, predRes, payRes] = await Promise.all([
     sb.from('mundial_matches').select('*').order('match_date', { ascending: true }),
     sb.from('mundial_predictions').select('match_id, user_id, display_name, pred_home, pred_away, points'),
-    sb.from('mundial_payments').select('*').order('display_name', { ascending: true }),
-    sb.from('mundial_config').select('value').eq('key', 'app_version').single()
+    sb.from('mundial_payments').select('*').order('display_name', { ascending: true })
   ]);
 
   onProgress?.(2);
 
   matches  = matchRes.data || [];
   payments = payRes.data  || [];
-  _dbVersion = cfgRes.data?.value || null;
   checkLiveScorePolling();
 
   const preds = predRes.data || [];
