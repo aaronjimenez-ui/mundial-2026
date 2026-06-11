@@ -528,14 +528,14 @@
       <div style="font-size:11px;color:rgba(255,255,255,0.65);">Recarga para ver los últimos cambios</div>
     </div>
   </div>
-  <button onclick="location.reload()" class="btn btn-sm" style="background:white;color:var(--navy);font-weight:700;white-space:nowrap;flex-shrink:0;">↻ Actualizar</button>
+  <button onclick="location.href=location.pathname+'?_r='+Date.now()" class="btn btn-sm" style="background:white;color:var(--navy);font-weight:700;white-space:nowrap;flex-shrink:0;">↻ Actualizar</button>
 </div>
 
 <script>
 /* ── Config ── */
 const SUPA_URL = 'https://okqwgsjhosfcdputpxlw.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9rcXdnc2pob3NmY2RwdXRweGx3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNzI2MTcsImV4cCI6MjA5MDY0ODYxN30.pZGeFbydGY6ilUhwNX77ax5HEmed0gSBUIoNOvW1kPE';
-const APP_VERSION = '2026-06-11-02';
+const APP_VERSION = '2026-06-11-03';
 
 /* ── Tournament weeks (CLT dates) ── */
 const WEEKS = [
@@ -682,7 +682,7 @@ async function loadAll(onProgress) {
       sb.from('mundial_predictions').select('match_id, user_id, display_name, pred_home, pred_away, points'),
       sb.from('mundial_payments').select('*').order('display_name', { ascending: true })
     ]),
-    new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout cargando datos (30s)')), 30000))
+    new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout cargando datos (60s)')), 60000))
   ]);
 
   onProgress?.(2);
