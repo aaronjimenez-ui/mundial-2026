@@ -3,8 +3,9 @@
  * 1. Reemplaza APP_VERSION en index.html con el commit SHA corto
  * 2. Actualiza mundial_config.app_version en Supabase con el mismo valor
  *
- * Requiere env var: SUPABASE_SERVICE_ROLE_KEY (configurar en Vercel dashboard)
  * Vercel provee VERCEL_GIT_COMMIT_SHA automáticamente.
+ * Usa SUPABASE_SERVICE_ROLE_KEY si está disponible; si no, cae a la anon key
+ * (con policy RLS anon_update_app_version en mundial_config).
  */
 
 const fs = require('fs');
@@ -30,11 +31,13 @@ fs.writeFileSync('index.html', patched);
 console.log('[build] index.html parchado');
 
 // 2. Actualizar Supabase — si falla, abortar deploy (evita infinite reload loop)
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-if (!serviceKey) {
-  console.error('[build] ERROR: SUPABASE_SERVICE_ROLE_KEY no configurada — abortando deploy');
-  console.error('[build] Sin esto, APP_VERSION en código ≠ DB → infinite reload loop para todos los usuarios');
-  process.exit(1);
+// Usa service_role_key si está disponible, si no cae a anon key (policy RLS permite UPDATE en key='app_version')
+const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9rcXdnc2pob3NmY2RwdXRweGx3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNzI2MTcsImV4cCI6MjA5MDY0ODYxN30.pZGeFbydGY6ilUhwNX77ax5HEmed0gSBUIoNOvW1kPE';
+const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ANON_KEY;
+if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  console.log('[build] Usando SUPABASE_SERVICE_ROLE_KEY');
+} else {
+  console.log('[build] SUPABASE_SERVICE_ROLE_KEY no configurada — usando anon key (RLS policy activa)');
 }
 
 const payload = JSON.stringify({ value: version });
