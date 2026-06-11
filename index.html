@@ -1037,9 +1037,8 @@ async function savePred(matchId) {
     return;
   }
 
+  userPreds[matchId] = { match_id: matchId, user_id: currentUser.id, display_name: getMyDisplayName(), pred_home: ph, pred_away: pa, points: 0 };
   toast('✓ Apuesta guardada');
-  await loadUserPreds();
-  await loadLeaderboard();
   renderMatches();
 }
 
@@ -2083,11 +2082,12 @@ async function bootApp() {
     _clearFp();
     console.error('loadAll error:', e);
     hideLoader();
+    const isTimeout = (e.message || '').includes('Timeout');
     document.getElementById('pane-matches').innerHTML =
       `<div class="empty-state">
          <div class="icon" style="color:var(--red);">⚠</div>
-         <div class="title">Error de conexión</div>
-         <div class="sub">Verifica tu conexión.<br>
+         <div class="title">${isTimeout ? 'Carga lenta' : 'Error de conexión'}</div>
+         <div class="sub">${isTimeout ? 'Supabase tardó demasiado en responder.' : esc(e.message || 'Error desconocido')}<br>
            <button class="btn btn-ghost btn-sm" onclick="location.reload()" style="margin-top:12px;">↻ Reintentar</button>
          </div>
        </div>`;
