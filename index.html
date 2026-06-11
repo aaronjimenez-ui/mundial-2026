@@ -153,6 +153,68 @@
     .spinner { width: 28px; height: 28px; border: 3px solid var(--s3); border-top-color: var(--blue); border-radius: 50%; animation: spin 0.7s linear infinite; margin: 56px auto; }
     @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
     .fade-in { animation: fadeUp 0.22s ease-out; }
+
+    /* ── Boot Loader ── */
+    #loadOverlay {
+      position: fixed; inset: 0; z-index: 9999;
+      background: var(--sf);
+      background-image:
+        radial-gradient(ellipse 70% 55% at 50% 30%, rgba(212,168,83,0.09) 0%, transparent 70%),
+        radial-gradient(ellipse 80% 50% at 50% 95%, rgba(74,144,217,0.06) 0%, transparent 60%);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 40px 24px;
+      transition: opacity 0.45s ease, visibility 0.45s ease;
+    }
+    #loadOverlay.lo-hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+    .lo-ball {
+      width: 72px; height: 72px; margin-bottom: 26px;
+      animation: loBounce 2.2s ease-in-out infinite;
+      filter: drop-shadow(0 0 12px rgba(212,168,83,0.25));
+    }
+    @keyframes loBounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+    @media (prefers-reduced-motion: reduce) { .lo-ball { animation: none; } }
+    .lo-title {
+      font-size: 26px; font-weight: 800; color: var(--tx); letter-spacing: -0.5px;
+      margin-bottom: 4px;
+    }
+    .lo-sub {
+      font-size: 11px; font-weight: 700; color: var(--gold); text-transform: uppercase;
+      letter-spacing: 3px; margin-bottom: 38px;
+    }
+    .lo-steps {
+      display: flex; gap: 24px; margin-bottom: 20px; align-items: flex-start;
+    }
+    .lo-step {
+      display: flex; flex-direction: column; align-items: center; gap: 7px;
+      opacity: 0.28; transition: opacity 0.35s ease;
+    }
+    .lo-step.active { opacity: 1; }
+    .lo-step.done { opacity: 0.6; }
+    .lo-dot {
+      width: 9px; height: 9px; border-radius: 50%; background: var(--t3);
+      transition: background 0.35s, transform 0.35s, box-shadow 0.35s;
+    }
+    .lo-step.active .lo-dot {
+      background: var(--gold); transform: scale(1.5);
+      box-shadow: 0 0 10px rgba(212,168,83,0.55);
+    }
+    .lo-step.done .lo-dot { background: var(--green); transform: scale(1); box-shadow: none; }
+    .lo-label {
+      font-size: 10px; color: var(--t3); font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.6px; white-space: nowrap;
+    }
+    .lo-step.active .lo-label { color: var(--gold-lt); }
+    .lo-step.done .lo-label { color: var(--green); }
+    .lo-track {
+      width: 220px; max-width: 72vw; height: 3px;
+      background: var(--s3); border-radius: 3px; overflow: hidden;
+    }
+    .lo-bar {
+      height: 100%; width: 0%; border-radius: 3px;
+      background: linear-gradient(90deg, var(--gold) 0%, var(--gold-lt) 100%);
+      transition: width 0.65s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 0 8px rgba(212,168,83,0.5);
+    }
     #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--navy); border: 1px solid var(--bd); color: var(--tx); padding: 10px 20px; border-radius: 12px; font-size: 13px; font-weight: 600; opacity: 0; transition: opacity 0.25s; z-index: 999; pointer-events: none; white-space: nowrap; box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
     .empty-state { text-align: center; padding: 56px 24px; }
     .empty-state .icon { font-size: 48px; margin-bottom: 14px; }
@@ -306,6 +368,39 @@
   </style>
 </head>
 <body>
+
+<!-- ── Boot Loader ── -->
+<div id="loadOverlay" class="lo-hidden" aria-live="polite" aria-label="Cargando aplicación">
+  <svg class="lo-ball" viewBox="0 0 72 72" fill="none" aria-hidden="true">
+    <defs>
+      <radialGradient id="lg-fill" cx="38%" cy="30%" r="65%">
+        <stop offset="0%" stop-color="rgba(240,201,106,0.18)"/>
+        <stop offset="100%" stop-color="rgba(212,168,83,0)"/>
+      </radialGradient>
+      <linearGradient id="lg-ring" x1="10%" y1="10%" x2="90%" y2="90%">
+        <stop offset="0%" stop-color="#F0C96A"/>
+        <stop offset="100%" stop-color="#B8872A"/>
+      </linearGradient>
+    </defs>
+    <circle cx="36" cy="36" r="30" fill="url(#lg-fill)"/>
+    <circle cx="36" cy="36" r="30" stroke="url(#lg-ring)" stroke-width="2"/>
+    <path d="M36 24 L44.7 30.5 L41.4 40.5 L30.6 40.5 L27.3 30.5 Z"
+          fill="rgba(212,168,83,0.2)" stroke="#D4A853" stroke-width="1.5" stroke-linejoin="round"/>
+    <line x1="36" y1="24" x2="36" y2="6" stroke="#D4A853" stroke-width="1" opacity="0.5"/>
+    <line x1="44.7" y1="30.5" x2="61" y2="20" stroke="#D4A853" stroke-width="1" opacity="0.5"/>
+    <line x1="41.4" y1="40.5" x2="58" y2="55" stroke="#D4A853" stroke-width="1" opacity="0.5"/>
+    <line x1="30.6" y1="40.5" x2="14" y2="55" stroke="#D4A853" stroke-width="1" opacity="0.5"/>
+    <line x1="27.3" y1="30.5" x2="11" y2="20" stroke="#D4A853" stroke-width="1" opacity="0.5"/>
+  </svg>
+  <div class="lo-title">Mundial 2026</div>
+  <div class="lo-sub">Predicciones</div>
+  <div class="lo-steps">
+    <div class="lo-step" id="lstep-1"><div class="lo-dot"></div><span class="lo-label">Partidos</span></div>
+    <div class="lo-step" id="lstep-2"><div class="lo-dot"></div><span class="lo-label">Apuestas</span></div>
+    <div class="lo-step" id="lstep-3"><div class="lo-dot"></div><span class="lo-label">Ranking</span></div>
+  </div>
+  <div class="lo-track"><div id="loBar" class="lo-bar"></div></div>
+</div>
 
 <!-- ── Login ── -->
 <div id="loginModal" class="modal-bg">
@@ -554,9 +649,12 @@ function logout() {
 }
 
 /* ── Data ── */
-async function loadAll() {
+async function loadAll(onProgress) {
+  onProgress?.(1);
   await Promise.all([loadMatches(), loadUserPreds()]);
+  onProgress?.(2);
   await Promise.all([loadLeaderboard(), loadPayments(), loadAllPreds()]);
+  onProgress?.(3);
 }
 
 async function loadMatches() {
@@ -1869,6 +1967,29 @@ function renderRules() {
   </div>`;
 }
 
+/* ── Boot Loader helpers ── */
+function _loStep(n) {
+  [1,2,3].forEach(i => {
+    const el = document.getElementById('lstep-' + i);
+    if (!el) return;
+    el.classList.toggle('active', i === n);
+    el.classList.toggle('done',   i < n);
+  });
+}
+function _loBar(pct) {
+  const bar = document.getElementById('loBar');
+  if (bar) bar.style.width = pct + '%';
+}
+function showLoader() {
+  document.getElementById('loadOverlay').classList.remove('lo-hidden');
+  _loBar(8); _loStep(1);
+}
+function hideLoader() {
+  const ov = document.getElementById('loadOverlay');
+  ov.classList.add('lo-hidden');
+  setTimeout(() => { _loBar(0); _loStep(0); }, 500);
+}
+
 /* ── Boot ── */
 async function bootApp() {
   const displayName = getMyDisplayName();
@@ -1879,21 +2000,24 @@ async function bootApp() {
     adminTabBtn.style.display = currentUser?.email === 'jimenezaaron5@gmail.com' ? '' : 'none';
   }
   activeWeek = getDefaultWeek();
-  document.getElementById('pane-matches').innerHTML = '<div class="spinner"></div>';
+  showLoader();
   try {
-    await Promise.race([
-      loadAll(),
-      new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 8000))
-    ]);
+    await loadAll(step => {
+      if (step === 2) { _loBar(58); _loStep(2); }
+      if (step === 3) { _loBar(92); _loStep(3); }
+    });
+    _loBar(100);
+    await new Promise(r => setTimeout(r, 380));
+    hideLoader();
     render();
   } catch (e) {
     console.error(e);
-    const isTimeout = e.message === 'timeout';
+    hideLoader();
     document.getElementById('pane-matches').innerHTML =
       `<div class="empty-state">
-         <div class="icon" style="color:${isTimeout ? 'var(--orange)' : 'var(--red)'};">⚠</div>
-         <div class="title">${isTimeout ? 'Carga lenta' : 'Error de conexión'}</div>
-         <div class="sub">${isTimeout ? 'El servidor tardó demasiado.' : 'Verifica tu conexión.'}<br>
+         <div class="icon" style="color:var(--red);">⚠</div>
+         <div class="title">Error de conexión</div>
+         <div class="sub">Verifica tu conexión.<br>
            <button class="btn btn-ghost btn-sm" onclick="refreshAll()" style="margin-top:12px;">↻ Reintentar</button>
          </div>
        </div>`;
