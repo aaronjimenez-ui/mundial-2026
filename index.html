@@ -365,6 +365,17 @@
       background: linear-gradient(to right, transparent, rgba(22,34,48,0.9));
       pointer-events: none;
     }
+
+    /* ── Update banner ── */
+    #updateBanner {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
+      background: linear-gradient(90deg, var(--navy-md) 0%, rgba(26,58,108,0.97) 100%);
+      backdrop-filter: blur(8px);
+      padding: 12px 20px; display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; border-top: 1px solid rgba(74,144,217,0.35);
+      transform: translateY(100%); transition: transform 0.35s cubic-bezier(.4,0,.2,1);
+    }
+    #updateBanner.visible { transform: translateY(0); }
   </style>
 </head>
 <body>
@@ -509,10 +520,22 @@
 
 <div id="toast"></div>
 
+<div id="updateBanner">
+  <div style="display:flex;align-items:center;gap:10px;">
+    <span style="font-size:20px;">🔄</span>
+    <div>
+      <div style="font-size:13px;font-weight:700;color:white;line-height:1.2;">Nueva versión disponible</div>
+      <div style="font-size:11px;color:rgba(255,255,255,0.65);">Recarga para ver los últimos cambios</div>
+    </div>
+  </div>
+  <button onclick="location.reload()" class="btn btn-sm" style="background:white;color:var(--navy);font-weight:700;white-space:nowrap;flex-shrink:0;">↻ Actualizar</button>
+</div>
+
 <script>
 /* ── Config ── */
 const SUPA_URL = 'https://okqwgsjhosfcdputpxlw.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9rcXdnc2pob3NmY2RwdXRweGx3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNzI2MTcsImV4cCI6MjA5MDY0ODYxN30.pZGeFbydGY6ilUhwNX77ax5HEmed0gSBUIoNOvW1kPE';
+const APP_VERSION = '2026-06-11-01';
 
 /* ── Tournament weeks (CLT dates) ── */
 const WEEKS = [
@@ -528,6 +551,7 @@ const WEEKS = [
 /* ── State ── */
 let sb, currentUser = null; // session.user object de Supabase Auth
 let matches = [], userPreds = {}, leaderboard = [], payments = [], allPreds = {};
+let _dbVersion = null, _versionCheckInterval = null;
 let activeTab = 'matches', activeWeek = 1, activeGroup = 'Todos', adminUnlocked = false;
 let activeApuestasWeek = 1;
 let adminFilter = 'todos'; // 'todos' | 'pendientes'
@@ -653,16 +677,18 @@ async function loadAll(onProgress) {
   onProgress?.(1);
   // 3 queries en paralelo en vez de 5 secuenciales:
   // mundial_predictions se consulta UNA vez y construye userPreds + allPreds + leaderboard
-  const [matchRes, predRes, payRes] = await Promise.all([
+  const [matchRes, predRes, payRes, cfgRes] = await Promise.all([
     sb.from('mundial_matches').select('*').order('match_date', { ascending: true }),
     sb.from('mundial_predictions').select('match_id, user_id, display_name, pred_home, pred_away, points'),
-    sb.from('mundial_payments').select('*').order('display_name', { ascending: true })
+    sb.from('mundial_payments').select('*').order('display_name', { ascending: true }),
+    sb.from('mundial_config').select('value').eq('key', 'app_version').single()
   ]);
 
   onProgress?.(2);
 
   matches  = matchRes.data || [];
   payments = payRes.data  || [];
+  _dbVersion = cfgRes.data?.value || null;
   checkLiveScorePolling();
 
   const preds = predRes.data || [];
@@ -1128,7 +1154,7 @@ function renderPozo() {
   const liveNow = started.filter(m => !m.is_finished);
   if (liveNow.length > 0 && !_apuestasInterval) {
     _apuestasInterval = setInterval(async () => {
-      await loadAllPreds();
+      await loadAll();
       if (activeTab === 'pozo') renderPozo();
     }, 60000);
   }
@@ -1300,6 +1326,17 @@ function renderAdmin() {
     </div>
   </div>
 
+  <!-- Forzar recarga -->
+  <div class="card" style="margin-bottom:18px;border-color:rgba(242,115,90,0.3);">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.8px;color:var(--coral);margin-bottom:4px;">📢 Forzar Recarga</div>
+        <div style="font-size:12px;color:var(--t3);">Notifica a todos que hay una versión nueva</div>
+      </div>
+      <button onclick="forceUpdate(this)" class="btn btn-sm" style="background:rgba(242,115,90,0.15);color:var(--coral);border:1px solid rgba(242,115,90,0.3);white-space:nowrap;min-width:90px;">Notificar</button>
+    </div>
+  </div>
+
   <!-- Add match form -->
   <div class="card" style="margin-bottom:18px;border-color:rgba(74,144,217,0.3);">
     <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.8px;color:var(--blue);margin-bottom:14px;">+ Agregar Partido</div>
@@ -1436,6 +1473,22 @@ function renderAdmin() {
   html += `</div>`;
 
   pane.innerHTML = html;
+}
+
+async function forceUpdate(btn) {
+  // Guarda APP_VERSION del nuevo código en DB.
+  // Usuarios con código viejo (APP_VERSION distinto) verán el banner.
+  // Usuarios que ya recargaron (tienen el nuevo código) no verán nada.
+  btn.disabled = true;
+  btn.textContent = '⏳...';
+  const { error } = await sb.from('mundial_config').update({ value: APP_VERSION }).eq('key', 'app_version');
+  if (error) {
+    toast('✗ Error al actualizar versión');
+  } else {
+    toast(`✓ Notificación enviada — versión ${APP_VERSION}`);
+  }
+  btn.disabled = false;
+  btn.textContent = 'Notificar';
 }
 
 async function syncScores(btn) {
@@ -1981,6 +2034,18 @@ function hideLoader() {
   setTimeout(() => { _loBar(0); _loStep(0); }, 500);
 }
 
+/* ── Version check ── */
+function showUpdateBanner() {
+  document.getElementById('updateBanner')?.classList.add('visible');
+}
+
+async function checkVersion() {
+  try {
+    const { data } = await sb.from('mundial_config').select('value').eq('key', 'app_version').single();
+    if (data?.value && data.value !== APP_VERSION) showUpdateBanner();
+  } catch (e) { /* no bloquear si falla */ }
+}
+
 /* ── Boot ── */
 async function bootApp() {
   const displayName = getMyDisplayName();
@@ -2011,6 +2076,10 @@ async function bootApp() {
     await new Promise(r => setTimeout(r, 350));
     hideLoader();
     render();
+    checkVersion();
+    if (!_versionCheckInterval) {
+      _versionCheckInterval = setInterval(checkVersion, 5 * 60 * 1000);
+    }
   } catch (e) {
     _clearFp();
     console.error(e);
