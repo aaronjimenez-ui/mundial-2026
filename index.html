@@ -521,7 +521,7 @@ function fmtDateHeader(dateStr) {
 }
 
 function getLock(m) {
-  const LOCK_MS = 60 * 60 * 1000; // cierre 1h antes del partido
+  const LOCK_MS = 30 * 60 * 1000; // cierre 30min antes del partido
   if (m.is_finished) return { locked: true, type: 'finished', label: 'Finalizado' };
   const diff = new Date(m.match_date) - Date.now();
   if (diff <= 0)      return { locked: true, type: 'live',    label: 'En curso' };
