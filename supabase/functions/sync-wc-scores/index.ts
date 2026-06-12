@@ -19,20 +19,22 @@ function getMatchMinute(comp: any, state: string): string | null {
     return 'Penales';
   }
 
-  // Use total match clock (seconds) — cumulative, not per-half. Accounts for stopped clock.
   const period: number = comp.status.period || 1;
-  const clockSeconds: number = comp.status.clock || 0;
-  const mins = Math.floor(clockSeconds / 60);
+  const displayClock: string = comp.status.displayClock || '';
 
-  if (period >= 3) {
-    return `Prórroga · ${mins}'`;
+  // During stoppage time ESPN freezes `clock` at 2700/5400s but `displayClock` shows "45'+3'" or "90'+8'"
+  // During regular play use clock/60 (more stable than displayClock string)
+  let minuteStr: string;
+  if (displayClock.includes('+')) {
+    // Stoppage: "45'+3'" → strip all apostrophes → "45+3" → append "'" → "45+3'"
+    minuteStr = displayClock.replace(/'/g, '') + "'";
+  } else {
+    minuteStr = `${Math.floor((comp.status.clock || 0) / 60)}'`;
   }
 
-  if (period === 2) {
-    return `2T · ${mins}'`;
-  }
-
-  return `1T · ${mins}'`;
+  if (period >= 3) return `Prórroga · ${minuteStr}`;
+  if (period === 2) return `2T · ${minuteStr}`;
+  return `1T · ${minuteStr}`;
 }
 
 async function syncScores() {
