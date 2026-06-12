@@ -1113,17 +1113,36 @@ function renderDinero() {
     <div style="font-size:12px;color:var(--t3);margin-top:6px;">${paid.length} de ${payments.length} participante${payments.length!==1?'s':''} han pagado</div>
   </div>`;
 
-  /* Distribución del pozo */
+  /* Distribución del pozo — agrupar empates por total de puntos */
+  const prizeGroups = [];
+  let _gi = 0;
+  while (_gi < leaderboard.length && prizeGroups.length < 3) {
+    const base = leaderboard[_gi];
+    const group = [];
+    while (_gi < leaderboard.length && leaderboard[_gi].total === base.total) group.push(leaderboard[_gi++]);
+    prizeGroups.push({ pts: base.total, entries: group });
+  }
   const prizes = [
-    { medal: '🥇', label: '1° lugar', pct: 0.70, color: 'var(--gold-lt)',  borderColor: 'rgba(212,175,55,0.4)',  bg: 'rgba(212,175,55,0.04)', ldr: leaderboard[0] },
-    { medal: '🥈', label: '2° lugar', pct: 0.20, color: 'var(--silver)',   borderColor: 'rgba(192,192,192,0.3)', bg: 'transparent',           ldr: leaderboard[1] },
-    { medal: '🥉', label: '3° lugar', pct: 0.10, color: 'var(--bronze)',   borderColor: 'rgba(205,127,50,0.3)',  bg: 'transparent',           ldr: leaderboard[2] },
+    { medal: '🥇', label: '1° lugar', pct: 0.70, color: 'var(--gold-lt)',  borderColor: 'rgba(212,175,55,0.4)',  bg: 'rgba(212,175,55,0.04)' },
+    { medal: '🥈', label: '2° lugar', pct: 0.20, color: 'var(--silver)',   borderColor: 'rgba(192,192,192,0.3)', bg: 'transparent' },
+    { medal: '🥉', label: '3° lugar', pct: 0.10, color: 'var(--bronze)',   borderColor: 'rgba(205,127,50,0.3)',  bg: 'transparent' },
   ];
   html += `<div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.8px;color:var(--t3);margin-bottom:8px;">🏆 Distribución del premio</div>`;
-  prizes.forEach(({ medal, label, pct, color, borderColor, bg, ldr }) => {
+  prizes.forEach(({ medal, label, pct, color, borderColor, bg }, idx) => {
     const amount = fmtCLP(Math.round(total * pct));
-    const ldrName = finalFinished ? esc(ldr?.name || '') : '🔒 ???';
-    const sub    = ldr ? `<div style="font-size:11px;color:var(--t3);margin-top:2px;">${ldrName} · ${ldr.total} pts</div>` : '<div style="font-size:11px;color:var(--t3);margin-top:2px;">—</div>';
+    const pg = prizeGroups[idx];
+    let sub = '<div style="font-size:11px;color:var(--t3);margin-top:2px;">—</div>';
+    if (pg) {
+      const pts = `${pg.pts} pts`;
+      let nameStr;
+      if (finalFinished) {
+        const names = pg.entries.map(e => esc(e.name));
+        nameStr = names.length <= 3 ? names.join(', ') : `${names.slice(0, 2).join(', ')} +${names.length - 2} más`;
+      } else {
+        nameStr = pg.entries.length > 1 ? `🔒 ${pg.entries.length} empatados` : '🔒 ???';
+      }
+      sub = `<div style="font-size:11px;color:var(--t3);margin-top:2px;">${nameStr} · ${pts}</div>`;
+    }
     html += `<div class="card" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;margin-bottom:8px;border-color:${borderColor};background:${bg};">
       <div style="display:flex;align-items:center;gap:10px;">
         <span style="font-size:20px;">${medal}</span>
@@ -1151,7 +1170,7 @@ function renderDinero() {
         <div style="display:flex;align-items:center;gap:10px;">
           <span style="font-size:18px;">✅</span>
           <div>
-            <div style="font-weight:700;font-size:14px;color:var(--tx);">${finalFinished ? esc(p.display_name) : 'Participante'}</div>
+            <div style="font-weight:700;font-size:14px;color:var(--tx);">${esc(p.display_name)}</div>
             ${fecha ? `<div style="font-size:11px;color:var(--t3);">Pagó el ${fecha}</div>` : ''}
           </div>
         </div>
@@ -1166,7 +1185,7 @@ function renderDinero() {
       html += `<div class="card" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;margin-bottom:8px;opacity:0.65;">
         <div style="display:flex;align-items:center;gap:10px;">
           <span style="font-size:18px;">⏳</span>
-          <div style="font-weight:700;font-size:14px;color:var(--tx);">${finalFinished ? esc(p.display_name) : 'Participante'}</div>
+          <div style="font-weight:700;font-size:14px;color:var(--tx);">${esc(p.display_name)}</div>
         </div>
         <div style="font-family:var(--mono);font-weight:800;color:var(--t3);font-size:15px;">${fmtCLP(p.amount)}</div>
       </div>`;
