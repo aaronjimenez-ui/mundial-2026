@@ -1233,9 +1233,10 @@ function renderLeaderboard() {
     pane.innerHTML = html; return;
   }
 
+  const finalFinished = matches.some(m => m.is_double_points && m.is_finished);
   leaderboard.forEach((p, i) => {
     const isMe = p.uid === currentUser?.id;
-    const top3 = i < 3;
+    const top3 = finalFinished && i < 3;
     const cls  = top3 ? `card ${LDR_CLS[i]}` : 'card';
     const ptColor = top3 ? COLORS[i] : 'var(--tx)';
 
