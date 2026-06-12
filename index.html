@@ -1652,7 +1652,9 @@ function _renderStripLive(liveMatches) {
     if (m.match_minute) {
       minuteLabel = m.match_minute;
     } else {
-      const elapsed = Math.floor((Date.now() - new Date(m.match_date).getTime()) / 60000);
+      // FIFA 2026 kickoffs typically happen ~90s after scheduled time — subtract to sync with broadcast clock
+      const KICKOFF_GRACE_MS = 90 * 1000;
+      const elapsed = Math.floor(Math.max(0, Date.now() - new Date(m.match_date).getTime() - KICKOFF_GRACE_MS) / 60000);
       if (elapsed <= 45) minuteLabel = `1T · ${elapsed}'`;
       else if (elapsed <= 60) minuteLabel = 'Descanso';
       else minuteLabel = `2T · ${Math.min(elapsed - 15, 90)}'`;
