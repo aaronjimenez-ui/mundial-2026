@@ -1647,7 +1647,13 @@ function _renderStripLive(liveMatches) {
   const multi  = liveMatches.length > 1;
 
   scroll.className = `strip-scroll${multi ? ' multi-live' : ''}`;
-  scroll.innerHTML = liveMatches.map((m, i) => `
+  scroll.innerHTML = liveMatches.map((m, i) => {
+    const elapsed = Math.floor((Date.now() - new Date(m.match_date).getTime()) / 60000);
+    let minuteLabel;
+    if (elapsed <= 45) minuteLabel = elapsed + `'`;
+    else if (elapsed <= 60) minuteLabel = 'MT';
+    else minuteLabel = Math.min(elapsed - 15, 90) + `'`;
+    return `
     <div class="strip-card" data-idx="${i}">
       <div class="strip-team-block">
         ${flag(m.home_team, 26)}
@@ -1655,14 +1661,17 @@ function _renderStripLive(liveMatches) {
       </div>
       <div class="strip-center">
         <div class="strip-score">${m.home_score != null ? m.home_score : '0'}<span style="color:var(--t3);font-size:14px;letter-spacing:0;margin:0 1px;">:</span>${m.away_score != null ? m.away_score : '0'}</div>
-        <span class="badge badge-live" style="font-size:9px;padding:2px 7px;margin-top:1px;">EN VIVO</span>
+        <div style="display:flex;align-items:center;gap:5px;margin-top:2px;">
+          <span class="badge badge-live" style="font-size:9px;padding:2px 7px;">EN VIVO</span>
+          <span style="font-size:11px;font-weight:700;color:var(--green);font-family:var(--mono);">${minuteLabel}</span>
+        </div>
       </div>
       <div class="strip-team-block">
         ${flag(m.away_team, 26)}
         <span class="strip-team-name">${esc(m.away_team)}</span>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 
   if (multi) {
     dots.style.display = 'flex';
