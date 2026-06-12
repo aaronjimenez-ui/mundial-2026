@@ -605,7 +605,6 @@ async function loadAll(onProgress) {
   onProgress?.(2);
 
   matches = matchRes.data || [];
-  if (matches.length > 0) { try { localStorage.setItem('wc26_m', JSON.stringify(matches)); } catch(e) {} }
   // mundial_payments no es crítica para boot — carga asíncrona, re-renderiza al resolver
   sb.from('mundial_payments').select('*').order('display_name', { ascending: true })
     .then(({ data }) => { payments = data || []; if (matches.length) render(); })
@@ -2026,17 +2025,11 @@ async function bootApp() {
     adminTabBtn.style.display = currentUser?.email === 'jimenezaaron5@gmail.com' ? '' : 'none';
   }
   activeWeek = getDefaultWeek();
-  const _cachedM = (() => { try { const r = localStorage.getItem('wc26_m'); return r ? JSON.parse(r) : null; } catch(e) { return null; } })();
-  if (_cachedM?.length) {
-    matches = _cachedM;
-    try { render(); } catch(e) {}
-  } else {
-    document.getElementById('pane-matches').innerHTML =
-      `<div class="empty-state">
-         <div style="width:32px;height:32px;border:3px solid var(--bd);border-top-color:var(--blue);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 14px;"></div>
-         <div class="sub">Cargando partidos...</div>
-       </div>`;
-  }
+  document.getElementById('pane-matches').innerHTML =
+    `<div class="empty-state">
+       <div style="width:32px;height:32px;border:3px solid var(--bd);border-top-color:var(--blue);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 14px;"></div>
+       <div class="sub">Cargando partidos...</div>
+     </div>`;
   checkVersion();
   if (!_versionCheckInterval) {
     _versionCheckInterval = setInterval(checkVersion, 60 * 1000);
@@ -2045,7 +2038,6 @@ async function bootApp() {
     await loadAll();
   } catch (e) {
     console.error('loadAll error:', e);
-    if (_cachedM?.length) return; // tenemos datos cacheados — no mostrar error
     const isTimeout = (e.message || '').includes('Timeout');
     document.getElementById('pane-matches').innerHTML =
       `<div class="empty-state">
@@ -2058,18 +2050,16 @@ async function bootApp() {
     return;
   }
 
-  if (matches.length > 0 || !_cachedM?.length) {
-    try {
-      render();
-    } catch (e) {
-      console.error('render error:', e.message, e.stack);
-      document.getElementById('pane-matches').innerHTML =
-        `<div class="empty-state">
-           <div class="icon" style="color:var(--red);">⚠</div>
-           <div class="title">Error al mostrar datos</div>
-           <div class="sub" style="font-family:var(--mono);font-size:11px;">${esc(e.message)}</div>
-         </div>`;
-    }
+  try {
+    render();
+  } catch (e) {
+    console.error('render error:', e.message, e.stack);
+    document.getElementById('pane-matches').innerHTML =
+      `<div class="empty-state">
+         <div class="icon" style="color:var(--red);">⚠</div>
+         <div class="title">Error al mostrar datos</div>
+         <div class="sub" style="font-family:var(--mono);font-size:11px;">${esc(e.message)}</div>
+       </div>`;
   }
 }
 
