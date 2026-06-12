@@ -605,7 +605,7 @@ async function loadAll(onProgress) {
   onProgress?.(2);
 
   matches = matchRes.data || [];
-  try { localStorage.setItem('wc26_m', JSON.stringify(matches)); } catch(e) {}
+  if (matches.length > 0) { try { localStorage.setItem('wc26_m', JSON.stringify(matches)); } catch(e) {} }
   // mundial_payments no es crítica para boot — carga asíncrona, re-renderiza al resolver
   sb.from('mundial_payments').select('*').order('display_name', { ascending: true })
     .then(({ data }) => { payments = data || []; if (matches.length) render(); })
@@ -2058,16 +2058,18 @@ async function bootApp() {
     return;
   }
 
-  try {
-    render();
-  } catch (e) {
-    console.error('render error:', e.message, e.stack);
-    document.getElementById('pane-matches').innerHTML =
-      `<div class="empty-state">
-         <div class="icon" style="color:var(--red);">⚠</div>
-         <div class="title">Error al mostrar datos</div>
-         <div class="sub" style="font-family:var(--mono);font-size:11px;">${esc(e.message)}</div>
-       </div>`;
+  if (matches.length > 0 || !_cachedM?.length) {
+    try {
+      render();
+    } catch (e) {
+      console.error('render error:', e.message, e.stack);
+      document.getElementById('pane-matches').innerHTML =
+        `<div class="empty-state">
+           <div class="icon" style="color:var(--red);">⚠</div>
+           <div class="title">Error al mostrar datos</div>
+           <div class="sub" style="font-family:var(--mono);font-size:11px;">${esc(e.message)}</div>
+         </div>`;
+    }
   }
 }
 
