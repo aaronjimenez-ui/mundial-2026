@@ -3,8 +3,37 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const ADMIN_EMAIL = "jimenezaaron5@gmail.com";
 const ESPN_URL = "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard";
-// Dedicated cron secret — set via Supabase secrets or fallback value
 const CRON_SECRET = Deno.env.get("CRON_SECRET") ?? "mnd26cron-be84f946f3623b9c";
+
+function getMatchMinute(comp: any, state: string): string | null {
+  if (state !== 'in') return null;
+
+  const statusName: string = comp.status.type.name || '';
+  const description: string = comp.status.type.description || '';
+
+  if (statusName.includes('HALFTIME') || description.toLowerCase().includes('halftime')) {
+    return 'Descanso';
+  }
+
+  if (statusName.includes('SHOOTOUT') || statusName.includes('PENALTY')) {
+    return 'Penales';
+  }
+
+  const period: number = comp.status.period || 1;
+  const clock: string = comp.status.displayClock || '0:00';
+  // ESPN shows the minute currently in progress (e.g. "23:00" = only 22min elapsed) — subtract 1
+  const mins = Math.max(0, (parseInt(clock.split(':')[0]) || 0) - 1);
+
+  if (period >= 3) {
+    return `Prórroga · ${90 + mins}'`;
+  }
+
+  if (period === 2) {
+    return `2T · ${45 + mins}'`;
+  }
+
+  return `1T · ${mins}'`;
+}
 
 async function syncScores() {
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -17,7 +46,6 @@ async function syncScores() {
   const data = await apiRes.json();
   const events: any[] = data.events || [];
 
-  // Only process matches in progress or finished
   const relevant = events.filter((e: any) => e.competitions[0].status.type.state !== "pre");
   if (relevant.length === 0) return { success: true, totalToday: events.length, updated: 0, skipped: events.length, notFound: 0, errors: [] };
 
@@ -35,24 +63,33 @@ async function syncScores() {
     const isFinished = state === "post";
     const homeScore = parseInt(home?.score ?? "0") || 0;
     const awayScore = parseInt(away?.score ?? "0") || 0;
+    const matchMinute = getMatchMinute(comp, state);
 
     const { data: dbMatch, error: findErr } = await supabase
       .from("mundial_matches")
-      .select("id, is_finished, home_score, away_score")
+      .select("id, is_finished, home_score, away_score, match_minute")
       .eq("match_date", matchDate)
       .maybeSingle();
 
     if (findErr || !dbMatch) { notFound++; errors.push(`notFound: ${event.name} (${matchDate})`); continue; }
 
-    // Skip if nothing changed
-    if (dbMatch.is_finished === isFinished && dbMatch.home_score === homeScore && dbMatch.away_score === awayScore) {
+    if (
+      dbMatch.is_finished === isFinished &&
+      dbMatch.home_score === homeScore &&
+      dbMatch.away_score === awayScore &&
+      dbMatch.match_minute === matchMinute
+    ) {
       skipped++; continue;
     }
 
-    // Only update scores and is_finished — status column has its own constraint
     const { error: updateErr } = await supabase
       .from("mundial_matches")
-      .update({ is_finished: isFinished, home_score: homeScore, away_score: awayScore })
+      .update({
+        is_finished: isFinished,
+        home_score: homeScore,
+        away_score: awayScore,
+        match_minute: isFinished ? null : matchMinute,
+      })
       .eq("id", dbMatch.id);
 
     if (updateErr) errors.push(`${event.name}: ${updateErr.message}`);
@@ -79,8 +116,6 @@ Deno.serve(async (req: Request) => {
 
   const authHeader = req.headers.get("Authorization") || "";
   const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
-
-  // Acepta CRON_SECRET (para cron externo) O admin JWT
   const isCronCall = token === CRON_SECRET;
 
   if (!isCronCall) {
