@@ -1648,11 +1648,15 @@ function _renderStripLive(liveMatches) {
 
   scroll.className = `strip-scroll${multi ? ' multi-live' : ''}`;
   scroll.innerHTML = liveMatches.map((m, i) => {
-    const elapsed = Math.floor((Date.now() - new Date(m.match_date).getTime()) / 60000);
     let minuteLabel;
-    if (elapsed <= 45) minuteLabel = elapsed + `'`;
-    else if (elapsed <= 60) minuteLabel = 'MT';
-    else minuteLabel = Math.min(elapsed - 15, 90) + `'`;
+    if (m.match_minute) {
+      minuteLabel = m.match_minute;
+    } else {
+      const elapsed = Math.floor((Date.now() - new Date(m.match_date).getTime()) / 60000);
+      if (elapsed <= 45) minuteLabel = `1T · ${elapsed}'`;
+      else if (elapsed <= 60) minuteLabel = 'Descanso';
+      else minuteLabel = `2T · ${Math.min(elapsed - 15, 90)}'`;
+    }
     return `
     <div class="strip-card" data-idx="${i}">
       <div class="strip-team-block">
