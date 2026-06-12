@@ -19,17 +19,17 @@ function getMatchMinute(comp: any, state: string): string | null {
     return 'Penales';
   }
 
+  // Use total match clock (seconds) — cumulative, not per-half. Accounts for stopped clock.
   const period: number = comp.status.period || 1;
-  const clock: string = comp.status.displayClock || '0:00';
-  // ESPN shows the minute currently in progress (e.g. "23:00" = only 22min elapsed) — subtract 1
-  const mins = Math.max(0, (parseInt(clock.split(':')[0]) || 0) - 1);
+  const clockSeconds: number = comp.status.clock || 0;
+  const mins = Math.floor(clockSeconds / 60);
 
   if (period >= 3) {
-    return `Prórroga · ${90 + mins}'`;
+    return `Prórroga · ${mins}'`;
   }
 
   if (period === 2) {
-    return `2T · ${45 + mins}'`;
+    return `2T · ${mins}'`;
   }
 
   return `1T · ${mins}'`;
@@ -54,7 +54,7 @@ async function syncScores() {
 
   for (const event of relevant) {
     const comp = event.competitions[0];
-    const state: string = comp.status.type.state; // "in" | "post"
+    const state: string = comp.status.type.state;
     const matchDate = new Date(event.date).toISOString();
 
     const home = comp.competitors.find((c: any) => c.homeAway === "home");
@@ -65,13 +65,35 @@ async function syncScores() {
     const awayScore = parseInt(away?.score ?? "0") || 0;
     const matchMinute = getMatchMinute(comp, state);
 
-    const { data: dbMatch, error: findErr } = await supabase
+    // Try exact match first, then fuzzy within ±5 minutes
+    let dbMatch: any = null;
+
+    const exactResult = await supabase
       .from("mundial_matches")
       .select("id, is_finished, home_score, away_score, match_minute")
       .eq("match_date", matchDate)
       .maybeSingle();
 
-    if (findErr || !dbMatch) { notFound++; errors.push(`notFound: ${event.name} (${matchDate})`); continue; }
+    if (!exactResult.error && exactResult.data) {
+      dbMatch = exactResult.data;
+    } else {
+      const windowStart = new Date(new Date(event.date).getTime() - 5 * 60 * 1000).toISOString();
+      const windowEnd   = new Date(new Date(event.date).getTime() + 5 * 60 * 1000).toISOString();
+
+      const fuzzyResult = await supabase
+        .from("mundial_matches")
+        .select("id, is_finished, home_score, away_score, match_minute, home_team, away_team")
+        .gte("match_date", windowStart)
+        .lte("match_date", windowEnd)
+        .maybeSingle();
+
+      if (!fuzzyResult.error && fuzzyResult.data) {
+        dbMatch = fuzzyResult.data;
+        errors.push(`fuzzyMatch: ${event.name} -> ${dbMatch.home_team} vs ${dbMatch.away_team}`);
+      }
+    }
+
+    if (!dbMatch) { notFound++; errors.push(`notFound: ${event.name} (${matchDate})`); continue; }
 
     if (
       dbMatch.is_finished === isFinished &&
@@ -99,7 +121,6 @@ async function syncScores() {
   return { success: true, totalToday: events.length, relevant: relevant.length, updated, skipped, notFound, errors };
 }
 
-// HTTP handler
 Deno.serve(async (req: Request) => {
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
   const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
