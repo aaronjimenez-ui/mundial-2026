@@ -461,7 +461,7 @@ let sb, currentUser = null; // session.user object de Supabase Auth
 let matches = [], userPreds = {}, leaderboard = [], payments = [], allPreds = {};
 let _dbVersion = null, _versionCheckInterval = null;
 let activeTab = 'matches', activeWeek = 1, activeGroup = 'Todos', adminUnlocked = false;
-let activeApuestasWeek = 1;
+let activeApuestasMatchId = null;
 let adminFilter = 'todos'; // 'todos' | 'pendientes'
 let _bootedForUserId = null; // evita bootApp() duplicado por múltiples eventos SIGNED_IN
 
@@ -990,122 +990,111 @@ async function savePred(matchId) {
 }
 
 /* ── APUESTAS ── */
-function setApuestasWeek(w) { activeApuestasWeek = w; renderPozo(); }
+function setApuestasMatchId(id) { activeApuestasMatchId = id; renderPozo(); }
 
 function renderPozo() {
   const pane = document.getElementById('pane-pozo');
   const now = Date.now();
 
-  /* Solo partidos que ya empezaron, ordenados por fecha desc */
-  const started = matches.filter(m => new Date(m.match_date).getTime() <= now)
-    .sort((a, b) => new Date(b.match_date) - new Date(a.match_date));
+  /* Partidos ya iniciados, ordenados por fecha asc */
+  const started = matches
+    .filter(mx => new Date(mx.match_date).getTime() <= now)
+    .sort((a, b) => new Date(a.match_date) - new Date(b.match_date));
 
   if (matches.length === 0) {
-    pane.innerHTML = `<div class="empty-state"><div class="icon">🎯</div><div class="title">Sin partidos aún</div><div class="sub">Las apuestas se revelan cuando el partido comienza</div></div>`;
+    pane.innerHTML = '<div class="empty-state"><div class="icon">🎯</div><div class="title">Sin partidos aún</div><div class="sub">Las apuestas se revelan cuando el partido comienza</div></div>';
     return;
   }
-
   if (started.length === 0) {
-    pane.innerHTML = `<div class="empty-state"><div class="icon">🔒</div><div class="title">Aún no comenzó ningún partido</div><div class="sub">Las apuestas se revelan al inicio de cada partido</div></div>`;
+    pane.innerHTML = '<div class="empty-state"><div class="icon">🔒</div><div class="title">Aún no comenzó ningún partido</div><div class="sub">Las apuestas se revelan al inicio de cada partido</div></div>';
     return;
   }
 
-  /* Determinar semanas con al menos un partido iniciado */
-  const weeksWithStarted = WEEKS.filter(w =>
-    started.some(m => { const d = cltDate(m.match_date); return d >= w.start && d < w.end; })
-  );
-
-  /* Si la semana activa no tiene partidos, usar la primera con partidos */
-  if (weeksWithStarted.length > 0 && !weeksWithStarted.find(w => w.id === activeApuestasWeek)) {
-    activeApuestasWeek = weeksWithStarted[weeksWithStarted.length - 1].id;
+  /* Auto-select: partido en curso > último finalizado */
+  if (!activeApuestasMatchId || !started.find(mx => mx.id === activeApuestasMatchId)) {
+    const live = started.find(mx => !mx.is_finished);
+    activeApuestasMatchId = live ? live.id : started[started.length - 1].id;
   }
 
-  /* Filtrar partidos por semana activa */
-  const week = WEEKS.find(w => w.id === activeApuestasWeek);
-  const filtered = week
-    ? started.filter(m => { const d = cltDate(m.match_date); return d >= week.start && d < week.end; })
-    : started;
+  const idx = started.findIndex(mx => mx.id === activeApuestasMatchId);
+  const match = started[idx];
+  const prevId = idx > 0 ? started[idx - 1].id : null;
+  const nextId = idx < started.length - 1 ? started[idx + 1].id : null;
 
-  let html = `<div style="font-size:11px;color:var(--t3);margin-bottom:14px;line-height:1.5;">Las apuestas se revelan cuando el partido comienza 🔒</div>`;
-
-  /* Pills de semana (solo si hay más de una semana con partidos) */
-  if (weeksWithStarted.length > 1) {
-    html += `<div class="hscroll" style="margin-bottom:14px;">
-      ${weeksWithStarted.map(w => `
-        <button class="pill${activeApuestasWeek===w.id?' active':''}" onclick="setApuestasWeek(${w.id})" style="display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 14px;">
-          <span style="font-size:12px;">${w.label}</span>
-          <span style="font-size:10px;opacity:0.7;font-weight:500;">${w.dates}</span>
-        </button>`).join('')}
-    </div>`;
-  }
-
-  if (filtered.length === 0) {
-    html += `<div class="empty-state"><div class="icon">🔍</div><div class="title">Sin partidos esta semana</div><div class="sub">Selecciona otra semana para ver las apuestas</div></div>`;
-    pane.innerHTML = html;
-    return;
-  }
-
-  filtered.forEach(m => {
-    const preds = (allPreds[m.id] || []).sort((a, b) => {
-      if (m.is_finished) {
-        const score = p => {
-          if (p.pred_home === m.home_score && p.pred_away === m.away_score) return 0; // exacto
-          if ((p.points || 0) > 0) return 1; // acierto
-          return 2; // incorrecto
-        };
-        const diff = score(a) - score(b);
-        if (diff !== 0) return diff;
-      }
-      return a.display_name.localeCompare(b.display_name);
-    });
-    const result = m.is_finished ? `${m.home_score} – ${m.away_score}` : 'En curso';
-    const resultColor = m.is_finished ? 'var(--gold-lt)' : 'var(--green)';
-
-    html += `
-    <div class="card" style="margin-bottom:14px;">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
-        <div>
-          <div style="font-weight:800;font-size:14px;color:var(--tx);">${esc(m.home_team)} vs ${esc(m.away_team)}</div>
-          <div style="font-size:11px;color:var(--t3);margin-top:2px;">${fmtDateHeader(cltDate(m.match_date))} · ${fmtTime(m.match_date)} CLT</div>
-        </div>
-        <div style="text-align:right;">
-          <div style="font-family:var(--mono);font-weight:900;font-size:18px;color:${resultColor};">${result}</div>
-          <div style="font-size:10px;color:var(--t3);">${m.is_finished ? 'Final' : '🟢 En vivo'}</div>
-        </div>
-      </div>`;
-
-    if (preds.length === 0) {
-      html += `<div style="font-size:12px;color:var(--t3);font-style:italic;">Nadie apostó en este partido</div>`;
-    } else {
-      html += `<div style="display:flex;flex-direction:column;gap:6px;">`;
-      preds.forEach(p => {
-        const hit = m.is_finished && p.pred_home === m.home_score && p.pred_away === m.away_score;
-        const correctResult = m.is_finished && p.points > 0;
-        const badge = m.is_finished
-          ? (hit ? '🎯' : correctResult ? '✅' : '❌')
-          : '';
-        html += `
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 10px;background:var(--bg2);border-radius:8px;">
-          <span style="font-size:13px;font-weight:600;color:var(--tx);">${badge} ${esc(p.display_name)}</span>
-          <span style="font-family:var(--mono);font-weight:800;font-size:14px;color:var(--blue);">${p.pred_home} – ${p.pred_away}</span>
-        </div>`;
-      });
-      html += `</div>`;
+  /* Predicciones del partido activo */
+  const preds = (allPreds[match.id] || []).sort((a, b) => {
+    if (match.is_finished) {
+      const score = p => {
+        if (p.pred_home === match.home_score && p.pred_away === match.away_score) return 0;
+        if ((p.points || 0) > 0) return 1;
+        return 2;
+      };
+      const diff = score(a) - score(b);
+      if (diff !== 0) return diff;
     }
-
-    html += `</div>`;
+    return a.display_name.localeCompare(b.display_name);
   });
 
-  /* Auto-refresh: iniciar interval si hay partidos en curso */
-  const liveNow = started.filter(m => !m.is_finished);
-  if (liveNow.length > 0 && !_apuestasInterval) {
+  const result = match.is_finished ? (match.home_score + ' – ' + match.away_score) : 'En curso';
+  const resultColor = match.is_finished ? 'var(--gold-lt)' : 'var(--green)';
+  const phaseLabel = esc(match.group_name || match.phase || '');
+
+  const btnBase = 'border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;';
+  const btnOn   = btnBase + 'background:var(--bg2);border:1px solid var(--bd);color:var(--tx);cursor:pointer;';
+  const btnOff  = btnBase + 'background:transparent;border:1px solid var(--bd);color:var(--t3);opacity:0.35;cursor:default;';
+
+  let predsHtml = '';
+  if (preds.length === 0) {
+    predsHtml = '<div style="font-size:12px;color:var(--t3);font-style:italic;">Nadie apostó en este partido</div>';
+  } else {
+    predsHtml = '<div style="display:flex;flex-direction:column;gap:6px;">';
+    preds.forEach(p => {
+      const hit     = match.is_finished && p.pred_home === match.home_score && p.pred_away === match.away_score;
+      const correct = match.is_finished && (p.points || 0) > 0;
+      const badge   = match.is_finished ? (hit ? '🎯' : correct ? '✅' : '❌') : '';
+      predsHtml += '<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 10px;background:var(--bg2);border-radius:8px;">'
+        + '<span style="font-size:13px;font-weight:600;color:var(--tx);">' + badge + ' ' + esc(p.display_name) + '</span>'
+        + '<span style="font-family:var(--mono);font-weight:800;font-size:14px;color:var(--blue);">' + p.pred_home + ' – ' + p.pred_away + '</span>'
+        + '</div>';
+    });
+    predsHtml += '</div>';
+  }
+
+  pane.innerHTML =
+    '<div style="font-size:11px;color:var(--t3);margin-bottom:14px;line-height:1.5;">Las apuestas se revelan cuando el partido comienza 🔒</div>'
+
+    /* Navegación prev / counter / next */
+    + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">'
+    + (prevId ? '<button style="' + btnOn  + '" onclick="setApuestasMatchId(\'' + prevId + '\')">&#8249; Anterior</button>'
+              : '<button style="' + btnOff + '" disabled>&#8249; Anterior</button>')
+    + '<span style="font-size:11px;color:var(--t3);font-weight:600;">Partido ' + (idx + 1) + ' de ' + started.length + '</span>'
+    + (nextId ? '<button style="' + btnOn  + '" onclick="setApuestasMatchId(\'' + nextId + '\')">Siguiente &#8250;</button>'
+              : '<button style="' + btnOff + '" disabled>Siguiente &#8250;</button>')
+    + '</div>'
+
+    /* Card del partido */
+    + '<div class="card">'
+    + '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;">'
+    + '<div>'
+    + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">' + flag(match.home_team, 28) + '<span style="font-weight:800;font-size:15px;color:var(--tx);">' + esc(match.home_team) + '</span></div>'
+    + '<div style="display:flex;align-items:center;gap:8px;">'                   + flag(match.away_team, 28) + '<span style="font-weight:800;font-size:15px;color:var(--tx);">' + esc(match.away_team) + '</span></div>'
+    + '<div style="font-size:11px;color:var(--t3);margin-top:6px;">' + (phaseLabel ? phaseLabel + ' · ' : '') + fmtDateHeader(cltDate(match.match_date)) + ' · ' + fmtTime(match.match_date) + ' CLT</div>'
+    + '</div>'
+    + '<div style="text-align:right;flex-shrink:0;margin-left:12px;">'
+    + '<div style="font-family:var(--mono);font-weight:900;font-size:22px;color:' + resultColor + ';">' + result + '</div>'
+    + '<div style="font-size:10px;color:var(--t3);margin-top:2px;">' + (match.is_finished ? 'Final' : '🟢 En vivo') + '</div>'
+    + '</div>'
+    + '</div>'
+    + predsHtml
+    + '</div>';
+
+  /* Auto-refresh si hay partidos en curso */
+  if (started.some(mx => !mx.is_finished) && !_apuestasInterval) {
     _apuestasInterval = setInterval(async () => {
       await loadAll();
       if (activeTab === 'pozo') renderPozo();
     }, 60000);
   }
-
-  pane.innerHTML = html;
 }
 
 /* ── POZO (público) ── */
