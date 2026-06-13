@@ -361,7 +361,9 @@ const TEAM_STATS = {
   'Perú':               [1.05, 1.22],
   'Ucrania':            [1.50, 1.00],
   'Polonia':            [1.40, 1.10],
-  'Austria':            [1.58, 0.90],
+  'Austria':            [1.58, 0.90],  // Nations League A + clasif Europa; Arnautovic/Sabitzer
+  'Suecia':             [1.75, 0.95],  // Gyökeres (43 goles Sporting 24-25) + Isak/Kulusevski
+  'Jordan':             [0.85, 1.32],  // debut WC — 1er clasificado AFC via playoff
 };
 
 function getStats(team) { return getAdjustedStats(team); }
@@ -384,7 +386,8 @@ const ELO = {
   'Catar': 1640, 'Cabo Verde': 1630, 'Irak': 1625, 'Uzbekistán': 1620,
   'Nueva Zelanda': 1605, 'Haití': 1555, 'Curazao': 1540,
   'Serbia': 1815, 'Venezuela': 1690, 'Perú': 1720,
-  'Ucrania': 1835, 'Polonia': 1810, 'Austria': 1825
+  'Ucrania': 1835, 'Polonia': 1810, 'Austria': 1825,
+  'Suecia': 1872, 'Jordan': 1648
 };
 
 const FLAGS = {
@@ -400,7 +403,8 @@ const FLAGS = {
   'Arabia Saudita':'🇸🇦','Panamá':'🇵🇦','Catar':'🇶🇦','Cabo Verde':'🇨🇻',
   'Irak':'🇮🇶','Uzbekistán':'🇺🇿','Nueva Zelanda':'🇳🇿','Haití':'🇭🇹',
   'Curazao':'🇨🇼','Serbia':'🇷🇸','Venezuela':'🇻🇪','Perú':'🇵🇪',
-  'Ucrania':'🇺🇦','Polonia':'🇵🇱','Austria':'🇦🇹'
+  'Ucrania':'🇺🇦','Polonia':'🇵🇱','Austria':'🇦🇹',
+  'Suecia':'🇸🇪','Jordan':'🇯🇴'
 };
 
 // Anfitriones con ventaja real de local
@@ -439,47 +443,47 @@ const GROUPS = {
   },
   'B': {
     teams: ['Canadá','Bosnia-Herzegovina','Catar','Suiza'],
-    md1: 'Jun 12', md2: 'Jun 16', md3: 'Jun 24'
+    md1: 'Jun 12-13', md2: 'Jun 18', md3: 'Jun 24'
   },
   'C': {
     teams: ['Brasil','Marruecos','Haití','Escocia'],
-    md1: 'Jun 12', md2: 'Jun 16', md3: 'Jun 24'
+    md1: 'Jun 13', md2: 'Jun 19', md3: 'Jun 24'
   },
   'D': {
     teams: ['EE.UU.','Paraguay','Australia','Turquía'],
-    md1: 'Jun 12', md2: 'Jun 16', md3: 'Jun 24'
+    md1: 'Jun 12-14', md2: 'Jun 19', md3: 'Jun 25'
   },
   'E': {
     teams: ['Alemania','Curazao',"Costa de Marfil",'Ecuador'],
-    md1: 'Jun 13', md2: 'Jun 17', md3: 'Jun 25'
+    md1: 'Jun 14', md2: 'Jun 20', md3: 'Jun 25'
   },
   'F': {
-    teams: ['Países Bajos','Japón','Ucrania','Túnez'],
-    md1: 'Jun 13', md2: 'Jun 17', md3: 'Jun 25'
+    teams: ['Países Bajos','Japón','Suecia','Túnez'],
+    md1: 'Jun 14', md2: 'Jun 20', md3: 'Jun 25'
   },
   'G': {
     teams: ['Bélgica','Egipto','Irán','Nueva Zelanda'],
-    md1: 'Jun 13', md2: 'Jun 17', md3: 'Jun 25'
+    md1: 'Jun 15', md2: 'Jun 20', md3: 'Jun 26'
   },
   'H': {
     teams: ['España','Cabo Verde','Arabia Saudita','Uruguay'],
-    md1: 'Jun 14', md2: 'Jun 18', md3: 'Jun 26'
+    md1: 'Jun 15', md2: 'Jun 21', md3: 'Jun 26'
   },
   'I': {
     teams: ['Francia','Senegal','Irak','Noruega'],
-    md1: 'Jun 14', md2: 'Jun 18', md3: 'Jun 26'
+    md1: 'Jun 16', md2: 'Jun 22', md3: 'Jun 26'
   },
   'J': {
-    teams: ['Argentina','Argelia','Venezuela','Perú'],
-    md1: 'Jun 14', md2: 'Jun 18', md3: 'Jun 26'
+    teams: ['Argentina','Argelia','Austria','Jordan'],
+    md1: 'Jun 16', md2: 'Jun 22', md3: 'Jun 27'
   },
   'K': {
     teams: ['Portugal','Rep. Dem. Congo','Uzbekistán','Colombia'],
-    md1: 'Jun 14', md2: 'Jun 19', md3: 'Jun 26'
+    md1: 'Jun 17', md2: 'Jun 23', md3: 'Jun 27'
   },
   'L': {
     teams: ['Inglaterra','Croacia','Ghana','Panamá'],
-    md1: 'Jun 14', md2: 'Jun 19', md3: 'Jun 27'
+    md1: 'Jun 17', md2: 'Jun 23', md3: 'Jun 27'
   }
 };
 
@@ -532,6 +536,9 @@ const TEAM_CONTEXT = {
   'Arabia Saudita':     { dt:'Hervé Renard', star:'Al-Dawsari', inj:'' },
   'Sudáfrica':          { dt:'Hugo Broos', star:'Percy Tau', inj:'' },
   'Chequia':            { dt:'Ivan Hasek', star:'T.Souček', inj:'' },
+  'Austria':            { dt:'Ralf Rangnick', star:'M.Arnautovic', inj:'D.Alaba (rodilla ❓)' },
+  'Suecia':             { dt:'Jon Dahl Tomasson', star:'Gyökeres', inj:'' },
+  'Jordan':             { dt:'Hussein Ammouta', star:'Mousa Al-Tamari', inj:'' },
 };
 
 function getContext(team) { return TEAM_CONTEXT[team] || null; }
