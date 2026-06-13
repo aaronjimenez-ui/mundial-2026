@@ -1,0 +1,25 @@
+name: Match Reminder Notifications
+
+on:
+  schedule:
+    # Cada hora — la edge function filtra si hay partido en las próximas 2h
+    - cron: '0 * * * *'
+  workflow_dispatch:
+
+jobs:
+  remind:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Send match reminders to users without bet
+        run: |
+          response=$(curl -s -o /tmp/remind.json -w "%{http_code}" \
+            -X POST \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            "https://okqwgsjhosfcdputpxlw.supabase.co/functions/v1/send-match-reminder")
+          echo "HTTP status: $response"
+          cat /tmp/remind.json
+          if [ "$response" != "200" ]; then
+            echo "::warning::Reminder returned HTTP $response"
+          fi

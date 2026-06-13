@@ -403,6 +403,16 @@
     <div id="liveStripDots" class="strip-dots" style="display:none;"></div>
   </div>
 
+  <!-- Bet Reminder Banner (partidos próximos sin apuesta) -->
+  <div id="bet-reminder-banner" style="display:none;background:#1e3a5f;border-bottom:1px solid #2a4a7f;padding:10px 16px;">
+    <div style="max-width:700px;margin:0 auto;display:flex;align-items:center;gap:10px;">
+      <span style="font-size:18px;flex-shrink:0;">⚽</span>
+      <div id="bet-reminder-text" style="flex:1;font-size:13px;font-weight:600;color:#e2e8f0;"></div>
+      <button onclick="openBetReminderMatch()" class="btn btn-sm" style="background:#2563eb;color:#fff;font-size:12px;padding:5px 12px;flex-shrink:0;">Apostar</button>
+      <button onclick="dismissBetReminder()" style="background:none;border:none;color:rgba(255,255,255,0.4);font-size:18px;cursor:pointer;padding:0 4px;flex-shrink:0;">✕</button>
+    </div>
+  </div>
+
   <!-- Tab Bar -->
   <div class="tab-bar">
     <div style="max-width:700px;margin:0 auto;display:flex;">
@@ -428,6 +438,21 @@
 
 <div id="toast"></div>
 
+<!-- Push Permission Banner (solicitar permiso notificaciones) -->
+<div id="notif-permission-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#0d1b2e;border-top:1px solid #2a3a54;padding:14px 16px;z-index:9000;">
+  <div style="max-width:700px;margin:0 auto;display:flex;align-items:flex-start;gap:12px;">
+    <div style="font-size:22px;flex-shrink:0;margin-top:2px;">🔔</div>
+    <div style="flex:1;">
+      <div style="font-weight:700;color:white;font-size:14px;margin-bottom:3px;">Activar notificaciones</div>
+      <div style="font-size:12px;color:rgba(255,255,255,0.55);line-height:1.4;">Te avisamos 2h antes de cada partido si aún no apostaste</div>
+    </div>
+    <div style="display:flex;gap:8px;flex-shrink:0;margin-top:2px;">
+      <button onclick="enableNotifications()" class="btn btn-sm" style="background:#2563eb;color:#fff;font-size:12px;padding:6px 14px;white-space:nowrap;">Activar</button>
+      <button onclick="dismissNotifBanner()" style="background:none;border:none;color:rgba(255,255,255,0.4);font-size:20px;cursor:pointer;padding:0 4px;">✕</button>
+    </div>
+  </div>
+</div>
+
 <div id="updateBanner">
   <div style="display:flex;align-items:center;gap:10px;">
     <span style="font-size:20px;">🔄</span>
@@ -444,6 +469,7 @@
 const SUPA_URL = 'https://okqwgsjhosfcdputpxlw.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9rcXdnc2pob3NmY2RwdXRweGx3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNzI2MTcsImV4cCI6MjA5MDY0ODYxN30.pZGeFbydGY6ilUhwNX77ax5HEmed0gSBUIoNOvW1kPE';
 const APP_VERSION = '2026-06-12-01';
+const VAPID_PUBLIC_KEY = 'BKrpnLIZESpmB0aIpnc2j9QFBK9f8awRXhtOvCxFqh6i5zj4wNwftgpb_8Kx_9q_CUxavjAacBk1uzkrXKHnGZk';
 
 /* ── Tournament weeks (CLT dates) ── */
 const WEEKS = [
@@ -903,7 +929,7 @@ function buildMatchCard(m) {
       <button class="btn btn-primary btn-sm" onclick="setResultFromCard('${m.id}')">✓ Finalizar</button>
     </div>` : '';
 
-  return `<div class="card">
+  return `<div class="card" data-match-id="${m.id}">
     <!-- Header -->
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;">
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
@@ -2076,9 +2102,141 @@ async function bootApp() {
          <div class="sub" style="font-family:var(--mono);font-size:11px;">${esc(e.message)}</div>
        </div>`;
   }
+
+  checkBetReminder();
+  initPushNotifications();
+}
+
+/* ── Push Notifications ── */
+let _swReg = null;
+let _betReminderMatchId = null;
+
+function urlBase64ToUint8Array(b64) {
+  const padding = '='.repeat((4 - b64.length % 4) % 4);
+  const base64 = (b64 + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw = window.atob(base64);
+  return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+}
+
+async function registerServiceWorker() {
+  if (!('serviceWorker' in navigator)) return;
+  try {
+    _swReg = await navigator.serviceWorker.register('/sw.js');
+  } catch (e) {
+    console.warn('SW registration failed:', e);
+  }
+}
+
+async function initPushNotifications() {
+  if (!('Notification' in window) || !('serviceWorker' in navigator)) return;
+  if (Notification.permission === 'granted') {
+    await _silentlyResubscribe();
+    return;
+  }
+  if (Notification.permission === 'denied') return;
+  if (localStorage.getItem('notif_dismissed') === '1') return;
+  setTimeout(() => {
+    const banner = document.getElementById('notif-permission-banner');
+    if (banner) banner.style.display = 'block';
+  }, 3000);
+}
+
+async function enableNotifications() {
+  const banner = document.getElementById('notif-permission-banner');
+  try {
+    const perm = await Notification.requestPermission();
+    if (banner) banner.style.display = 'none';
+    if (perm !== 'granted') return;
+    await _subscribeAndSave();
+    toast('🔔 Notificaciones activadas');
+  } catch (e) {
+    console.warn('enableNotifications error:', e);
+    toast('✗ No se pudo activar notificaciones');
+  }
+}
+
+async function _subscribeAndSave() {
+  if (!_swReg || !currentUser) return;
+  try {
+    const sub = await _swReg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+    });
+    await sb.from('push_subscriptions').upsert({
+      user_id: currentUser.id,
+      endpoint: sub.endpoint,
+      subscription: JSON.parse(JSON.stringify(sub))
+    }, { onConflict: 'user_id,endpoint' });
+  } catch (e) {
+    console.warn('_subscribeAndSave error:', e);
+  }
+}
+
+async function _silentlyResubscribe() {
+  if (!_swReg || !currentUser) return;
+  try {
+    let sub = await _swReg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await _swReg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+      });
+    }
+    await sb.from('push_subscriptions').upsert({
+      user_id: currentUser.id,
+      endpoint: sub.endpoint,
+      subscription: JSON.parse(JSON.stringify(sub))
+    }, { onConflict: 'user_id,endpoint' });
+  } catch (e) {
+    console.warn('_silentlyResubscribe error:', e);
+  }
+}
+
+function dismissNotifBanner() {
+  localStorage.setItem('notif_dismissed', '1');
+  const banner = document.getElementById('notif-permission-banner');
+  if (banner) banner.style.display = 'none';
+}
+
+function checkBetReminder() {
+  const banner = document.getElementById('bet-reminder-banner');
+  if (!banner || !currentUser) return;
+  const now = new Date();
+  const upcoming = matches.find(m => {
+    if (m.status !== 'pending' || m.is_finished) return false;
+    const diff = new Date(m.match_date) - now;
+    return diff > 0 && diff < 24 * 3600 * 1000;
+  });
+  if (!upcoming || userPreds[upcoming.id]) { banner.style.display = 'none'; return; }
+  if (sessionStorage.getItem('bet_reminder_dismissed') === upcoming.id) { banner.style.display = 'none'; return; }
+  _betReminderMatchId = upcoming.id;
+  const diff = new Date(upcoming.match_date) - now;
+  const h = Math.floor(diff / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  const label = h > 0 ? `${h}h ${m}min` : `${m} min`;
+  document.getElementById('bet-reminder-text').textContent =
+    `${upcoming.home_team} vs ${upcoming.away_team} en ${label} — ¡aún no apostaste!`;
+  banner.style.display = 'block';
+}
+
+function openBetReminderMatch() {
+  if (!_betReminderMatchId) return;
+  dismissBetReminder();
+  switchTab('matches');
+  setTimeout(() => {
+    const el = document.querySelector(`[data-match-id="${_betReminderMatchId}"]`);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 200);
+}
+
+function dismissBetReminder() {
+  if (_betReminderMatchId) sessionStorage.setItem('bet_reminder_dismissed', _betReminderMatchId);
+  const banner = document.getElementById('bet-reminder-banner');
+  if (banner) banner.style.display = 'none';
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  registerServiceWorker();
   sb = supabase.createClient(SUPA_URL, SUPA_KEY, {
     auth: { detectSessionInUrl: true, persistSession: true }
   });
