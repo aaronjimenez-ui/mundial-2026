@@ -163,8 +163,8 @@
   <div class="method-tag"><strong>MODELO:</strong> Poisson Bivariado</div>
   <div class="method-tag"><strong>CORRECCIÓN:</strong> Dixon-Coles (ρ=-0.07, calibrado WC 2014-2022)</div>
   <div class="method-tag"><strong>RATINGS:</strong> xGF/xGA por equipo + ajuste strength-of-schedule por confederación</div>
-  <div class="method-tag"><strong>BLEND:</strong> 55% xG model + 45% Elo (Groll et al. 2018 — cross-confederation)</div>
-  <div class="method-tag"><strong>LOCAL:</strong> MEX +0.28 / USA +0.20 / CAN +0.16 (Pollard 2006)</div>
+  <div class="method-tag"><strong>BLEND:</strong> 65% xG model + 35% Elo + underdog dampening (evidencia MD1 WC 2026)</div>
+  <div class="method-tag"><strong>LOCAL:</strong> MEX +0.28 / USA +0.28 / CAN +0.18 (Pollard 2006 + calibración MD1)</div>
   <div class="method-tag"><strong>FORMA:</strong> 20% blend datos in-tournament MD1+ (Baker & McHale 2015 — umbral ≥4 partidos observados)</div>
   <div class="method-tag"><strong>⚔️</strong> = xGF/partido creado · <strong>🛡️</strong> = xGA/partido concedido</div>
 </div>
@@ -227,7 +227,7 @@ const DC_RHO = -0.07;  // Dixon-Coles ρ WC 2014-2022: −0.07 (vs −0.10-0.13 
 const MAX_G = 8;        // Máximo goles por equipo en la matriz
 const ELO_SCALE = 800;  // Factor escala Elo→λ: cada 100pts ≈ +13.3% goles (Koopman & Lit 2019)
 // Ventaja local diferenciada (Pollard 2006): tradición futbolística + capacidad estadio
-const HOME_BONUS_HOST = { 'México': 0.28, 'EE.UU.': 0.20, 'Canadá': 0.16 };
+const HOME_BONUS_HOST = { 'México': 0.28, 'EE.UU.': 0.28, 'Canadá': 0.18 };  // USA: calibrado MD1 (+0.08), CAN: +0.02
 
 const FACT_CACHE = [1,1,2,6,24,120,720,5040,40320,362880];
 
@@ -245,23 +245,29 @@ function dcAdj(i, j, muA, muB) {
 }
 
 // Modelo xGF/xGA: λ_A = att_A × def_B / global_avg (Maher 1982)
-// Blend 70% xG model + 30% Elo para robustez ante equipos con pocos datos
+// Blend 65% xG model + 35% Elo + underdog dampening (calibrado MD1 WC 2026)
 function getLambdas(teamA, teamB, homeBonus) {
   const sA = getAdjustedStats(teamA);
   const sB = getAdjustedStats(teamB);
 
   // xG model: ataque de A contra defensa de B
-  const xgLA = sA[0] * sB[1] / AVG;
-  const xgLB = sB[0] * sA[1] / AVG;
+  let xgLA = sA[0] * sB[1] / AVG;
+  let xgLB = sB[0] * sA[1] / AVG;
 
-  // Elo fallback (30% blend)
+  // Underdog ATK dampening: WC → equipos débiles juegan ultra-defensivo vs favoritos
+  // Evidencia MD1: RSA 0.18 xG real vs 0.87 modelo, PAR 0.59 vs 0.91, CZE 0.81 vs 1.07
   const eloA = ELO[teamA] || 1700, eloB = ELO[teamB] || 1700;
+  const eloGap = eloA - eloB;
+  if (eloGap > 100) xgLB *= 0.85;        // equipo B débil → penalizar ATK 15%
+  else if (eloGap < -100) xgLA *= 0.85;  // equipo A débil
+
+  // Elo fallback (35% blend)
   const f = Math.exp((eloA - eloB) / ELO_SCALE);
   const eloLA = AVG * f, eloLB = AVG / f;
 
-  // Blend 55/45: mayor peso Elo compensa heterogeneidad de confederaciones (Groll et al. 2018)
-  const lA = 0.55 * xgLA + 0.45 * eloLA + (homeBonus || 0);
-  const lB = 0.55 * xgLB + 0.45 * eloLB;
+  // Blend 65/35 — mayor peso xG con buena cobertura clasificatoria (Groll et al. 2018)
+  const lA = 0.65 * xgLA + 0.35 * eloLA + (homeBonus || 0);
+  const lB = 0.65 * xgLB + 0.35 * eloLB;
   return {
     lA: Math.max(0.35, Math.min(3.80, lA)),
     lB: Math.max(0.35, Math.min(3.80, lB))
@@ -332,7 +338,7 @@ const TEAM_STATS = {
   'México':             [1.62, 0.82],  // xGA 0.68 subestimado: Copa América 2024 concedió ≈1.1 vs rivales CONMEBOL
   'Marruecos':          [1.45, 0.80],
   'EE.UU.':             [1.95, 0.92],  // bayesian shrinkage: 4-1 vs PAR (17 tiros, 5 SOT, xGF≈2.4) → P(≥4|λ=1.806)=11% señal real; xGA 0.92 (72% posesión = menos exposición)
-  'Corea del Sur':      [1.72, 0.82],  // xGA ajustado: Qatar 2022 ≈0.95 xGA vs España/Alemania
+  'Corea del Sur':      [1.85, 0.78],  // Copa Asia 2024 + WC 2022: ATK subestimado MD1 (2.15 xG real vs λ=1.38)
   'Chequia':            [1.40, 1.10],  // +1.29 xGD vs rivales comparables
   'Escocia':            [1.40, 1.10],  // 1.56 xGF/90 clasif, -0.9 Euro 2024
   'Canadá':             [1.40, 1.10],
@@ -369,7 +375,7 @@ const TEAM_STATS = {
 function getStats(team) { return getAdjustedStats(team); }
 
 // ═══════════════════════════════════════════════════
-// ELO RATINGS — solo para blend 30% + standings display
+// ELO RATINGS — solo para blend 35% + standings display
 // (eloratings.net, enero 2026)
 // ═══════════════════════════════════════════════════
 const ELO = {
@@ -558,24 +564,23 @@ const TEAM_ADJUSTMENTS = {
   'Alemania':     { atkMult: 0.95, defMult: 1.00, note: '−5% ATK · Gnabry (aductor)' },
   'España':       { atkMult: 0.97, defMult: 1.00, note: '−3% ATK · Fermín López ❌' },
   'Argentina':    { atkMult: 1.00, defMult: 1.06, note: '+6% xGA · C.Romero (ligamento colateral)' },
-  'EE.UU.':       { atkMult: 0.97, defMult: 1.00, note: '−3% ATK · Agyemang ❌ (tendón Aquiles)' },
 };
 
 // ═══════════════════════════════════════════════════
 // FORMA DEL TORNEO — actualizar tras cada MD
 // formMult > 1 = ataque mejor de lo esperado in-tournament
 // defMult < 1 = defensa mejor (concede menos) | > 1 = peor
-// Blend 15% sobre stats base (Baker & McHale 2015)
+// Peso progresivo: w=0.07 MD1 → 0.14 MD2 → 0.20 MD3+ (Baker & McHale 2015 — mínimo 4 obs para 20%)
 // ═══════════════════════════════════════════════════
 const TOURNAMENT_FORM = {
-  'México':             { formMult: 1.10, defMult: 0.93 },  // 2-0 vs Sudáfrica — eficiencia + solidez defensiva previa a expulsiones
-  'Sudáfrica':          { formMult: 0.85, defMult: 1.18 },  // 0-2 vs México — 3 tiros en 49min, gol min 9, 2 rojas — fragilidad mental confirmada
-  'Corea del Sur':      { formMult: 1.10, defMult: 0.95 },  // 2-1 vs Chequia — xG real 1.84 vs lambda 1.379, remontada, defensa sólida
-  'Chequia':            { formMult: 0.88, defMult: 1.15 },  // 1-2 vs KOR — 4 tiros, posesión 38.3%, gol de long throw — no de juego estructurado
-  'Canadá':             { formMult: 1.00, defMult: 0.98 },  // 1-1 vs Bosnia — neutro ataque; defensa levemente mejor (-2%)
-  'Bosnia-Herzegovina': { formMult: 1.00, defMult: 1.00 },  // 1-1 vs Canadá — neutro, gol de córner (set piece)
-  'EE.UU.':             { formMult: 1.18, defMult: 0.90 },  // 4-1 vs Paraguay — 17 tiros, 5 SOT, 72% posesión, dominancia total
-  'Paraguay':           { formMult: 0.85, defMult: 1.20 },  // 1-4 vs EE.UU. — 8 tiros 1 SOT, fragilidad defensiva real (no solo lambda)
+  'México':             { formMult: 1.10, defMult: 0.93, w: 0.07 },  // 2-0 vs Sudáfrica — eficiencia + solidez defensiva previa a expulsiones
+  'Sudáfrica':          { formMult: 0.85, defMult: 1.18, w: 0.07 },  // 0-2 vs México — 3 tiros en 49min, gol min 9, 2 rojas — fragilidad mental confirmada
+  'Corea del Sur':      { formMult: 1.10, defMult: 0.95, w: 0.07 },  // 2-1 vs Chequia — xG real 2.15 vs lambda 1.38, remontada, defensa sólida
+  'Chequia':            { formMult: 0.88, defMult: 1.15, w: 0.07 },  // 1-2 vs KOR — 4 tiros, posesión 38.3%, gol de long throw
+  'Canadá':             { formMult: 1.00, defMult: 0.98, w: 0.07 },  // 1-1 vs Bosnia — neutro ataque; defensa levemente mejor (-2%)
+  'Bosnia-Herzegovina': { formMult: 1.00, defMult: 1.00, w: 0.07 },  // 1-1 vs Canadá — neutro, gol de córner (set piece)
+  'EE.UU.':             { formMult: 1.18, defMult: 0.90, w: 0.07 },  // 4-1 vs Paraguay — 17 tiros, 5 SOT, 72% posesión, dominancia total
+  'Paraguay':           { formMult: 0.85, defMult: 1.20, w: 0.07 },  // 1-4 vs EE.UU. — 8 tiros 1 SOT, fragilidad defensiva real
 };
 
 function getAdjustedStats(team) {
@@ -584,9 +589,10 @@ function getAdjustedStats(team) {
   const form = TOURNAMENT_FORM[team];
   const atkBase = adj ? base[0] * adj.atkMult : base[0];
   const defBase = adj ? base[1] * adj.defMult : base[1];
-  // 20% de peso a la forma del torneo (Baker & McHale 2015: threshold MD1→MD2 con ≥4 partidos observados)
-  const atkFinal = form ? atkBase * (0.80 + 0.20 * form.formMult) : atkBase;
-  const defFinal = form ? defBase * (0.80 + 0.20 * form.defMult) : defBase;
+  // Peso progresivo (form.w): 7% MD1 → 14% MD2 → 20% MD3+ (Baker & McHale 2015)
+  const fw = form ? (form.w !== undefined ? form.w : 0.20) : 0;
+  const atkFinal = form ? atkBase * (1 - fw + fw * form.formMult) : atkBase;
+  const defFinal = form ? defBase * (1 - fw + fw * form.defMult) : defBase;
   return [+atkFinal.toFixed(3), +defFinal.toFixed(3)];
 }
 
