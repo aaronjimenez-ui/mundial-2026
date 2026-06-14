@@ -1000,7 +1000,16 @@ async function savePred(matchId) {
 
   /* Double-check lock client-side */
   const m = matches.find(x => x.id === matchId);
-  if (m && getLock(m).locked) { toast('🔒 Este partido ya no acepta apuestas'); return; }
+  const lock = m ? getLock(m) : null;
+  if (lock && lock.locked) {
+    sb.from('mundial_save_logs').insert({
+      user_id: currentUser.id, display_name: getMyDisplayName(),
+      match_id: matchId, pred_home: ph, pred_away: pa,
+      result: 'locked_client', lock_label: lock.label
+    });
+    toast('🔒 Este partido ya no acepta apuestas');
+    return;
+  }
 
   const orig = btn.textContent;
   btn.disabled = true; btn.textContent = '...';
@@ -1031,6 +1040,13 @@ async function savePred(matchId) {
     const paElErr = document.getElementById(`pa-${matchId}`);
     if (phElErr) { phElErr.classList.remove('saved'); phElErr.classList.add('unsaved'); }
     if (paElErr) { paElErr.classList.remove('saved'); paElErr.classList.add('unsaved'); }
+    sb.from('mundial_save_logs').insert({
+      user_id: currentUser.id, display_name: getMyDisplayName(),
+      match_id: matchId, pred_home: ph, pred_away: pa,
+      result: isRLS ? 'locked_rls' : 'error',
+      lock_label: lock?.label || null,
+      error_message: error.message || error.code || null
+    });
     if (isRLS) {
       const hadPrev = !!userPreds[matchId];
       toast(hadPrev ? '🔒 Partido iniciado — tu apuesta anterior sigue guardada' : '🔒 Este partido ya no acepta apuestas');
@@ -1039,6 +1055,12 @@ async function savePred(matchId) {
     }
     return;
   }
+
+  sb.from('mundial_save_logs').insert({
+    user_id: currentUser.id, display_name: getMyDisplayName(),
+    match_id: matchId, pred_home: ph, pred_away: pa,
+    result: 'success', lock_label: lock?.label || null
+  });
 
   const phElOk = document.getElementById(`ph-${matchId}`);
   const paElOk = document.getElementById(`pa-${matchId}`);
