@@ -154,7 +154,7 @@
 <header>
   <h1>⚽ MUNDIAL 2026 — <span>Predictor Matemático</span></h1>
   <div class="header-meta">
-    Modelo: Poisson Bivariado + Corrección Dixon-Coles + Elo Ratings<br>
+    Modelo v5: Poisson Bivariado + Dixon-Coles + Elo + GK Quality + Set-Pieces + Squad Depth<br>
     Actualizado: <span id="update-date"></span> · 72 partidos fase de grupos
   </div>
 </header>
@@ -166,6 +166,9 @@
   <div class="method-tag"><strong>BLEND:</strong> 65% xG model + 35% Elo + underdog dampening (evidencia MD1 WC 2026)</div>
   <div class="method-tag"><strong>LOCAL:</strong> MEX +0.28 / USA +0.28 / CAN +0.18 (Pollard 2006 + calibración MD1)</div>
   <div class="method-tag"><strong>FORMA:</strong> 20% blend datos in-tournament MD1+ (Baker & McHale 2015 — umbral ≥4 partidos observados)</div>
+  <div class="method-tag"><strong>🧤 GK:</strong> gkFactor 0.91–1.10 — portero élite reduce xGA efectivo (Alisson 0.91, E.Martínez 0.93, Abunada 0.95)</div>
+  <div class="method-tag"><strong>🎯 BP:</strong> setBonus goles/partido de balón parado sobre promedio (Argentina +0.08, Noruega +0.07, Alemania +0.04)</div>
+  <div class="method-tag"><strong>🏗️ FONDO:</strong> depthFactor modula impacto lesiones — España 1.20 amortigua, Haití 0.70 amplifica (±40% diferencia)</div>
   <div class="method-tag"><strong>⚔️</strong> = xGF/partido creado · <strong>🛡️</strong> = xGA/partido concedido</div>
 </div>
 
@@ -624,16 +627,115 @@ const TOURNAMENT_FORM = {
   'Paraguay':           { formMult: 0.85, defMult: 1.20, w: 0.07 },  // 1-4 vs EE.UU. — 8 tiros 1 SOT, fragilidad defensiva real
 };
 
+// ═══════════════════════════════════════════════════
+// PERFIL DE EQUIPO — Factores cualitativos avanzados
+// gkFactor  : calidad portero — < 1.0 = élite (Alisson/Martínez); > 1.0 = débil
+//             Aplicado a DEF stat: portero élite concede menos goles que su xGA predice
+// setBonus  : goles ADICIONALES/partido de balón parado sobre el promedio WC
+//             Captura especialización que subestiman los xGF de clasificatorias
+// depthFactor: profundidad plantilla — 1.0 = media WC; 1.20 = muy profunda; 0.65 = superficial
+//              Modula impacto de lesiones: effectivePenalty = rawPenalty / depthFactor
+// Fuente: WC 2018-2022 GK stats + FBref Adv. Goalkeeping + análisis cualitativo Jun 2026
+// ═══════════════════════════════════════════════════
+const TEAM_PROFILE = {
+  // ── Grupo A ──
+  'México':             { gkFactor: 1.03, setBonus: 0.03, depthFactor: 1.00, gkName: 'Raúl Rangel',         gkNote: 'promedio — Liga MX nivel, primer WC' },
+  'Sudáfrica':          { gkFactor: 1.04, setBonus: 0.01, depthFactor: 0.90, gkName: 'Ronwen Williams',      gkNote: 'promedio — Mamelodi Sundowns' },
+  'Corea del Sur':      { gkFactor: 0.97, setBonus: 0.02, depthFactor: 1.05, gkName: 'Kim Seung-gyu',        gkNote: 'sólido — save clave vs Chequia MD1' },
+  'Chequia':            { gkFactor: 0.97, setBonus: 0.01, depthFactor: 0.95, gkName: 'Matěj Kovář',          gkNote: 'sólido — Bayer Leverkusen, héroe penales clasif' },
+  // ── Grupo B ──
+  'Canadá':             { gkFactor: 1.03, setBonus: 0.02, depthFactor: 0.95, gkName: 'Maxime Crépeau',       gkNote: 'promedio — MLS nivel' },
+  'Bosnia-Herzegovina': { gkFactor: 1.03, setBonus: 0.01, depthFactor: 0.90, gkName: 'Nikola Vasilj',        gkNote: 'promedio — St. Pauli Bundesliga' },
+  'Catar':              { gkFactor: 0.95, setBonus: 0.01, depthFactor: 0.80, gkName: 'Mahmoud Abunada',       gkNote: 'sólido — MOTM MD1 (5 saves vs SUI 3.24 xG)' },
+  'Suiza':              { gkFactor: 0.93, setBonus: 0.03, depthFactor: 1.10, gkName: 'Gregor Kobel',          gkNote: 'élite — Dortmund, 15 CS Bundesliga 2025-26' },
+  // ── Grupo C ──
+  'Brasil':             { gkFactor: 0.91, setBonus: 0.05, depthFactor: 1.15, gkName: 'Alisson Becker',        gkNote: 'élite — Liverpool, ~87% save rate CL' },
+  'Marruecos':          { gkFactor: 0.95, setBonus: 0.04, depthFactor: 1.05, gkName: 'Yassine Bounou (Bono)', gkNote: 'muy bueno — Al-Hilal, héroe WC 2022' },
+  'Haití':              { gkFactor: 1.10, setBonus: -0.02, depthFactor: 0.70, gkName: 'Johny Placide',         gkNote: 'débil — Ligue 2, 38 años, primer WC' },
+  'Escocia':            { gkFactor: 1.02, setBonus: 0.02, depthFactor: 0.90, gkName: 'Angus Gunn',             gkNote: 'promedio — Nottingham Forest' },
+  // ── Grupo D ──
+  'EE.UU.':             { gkFactor: 1.02, setBonus: 0.03, depthFactor: 1.05, gkName: 'Matt Freese',            gkNote: 'promedio — MLS nivel, 15 starts USMNT' },
+  'Paraguay':           { gkFactor: 1.06, setBonus: 0.01, depthFactor: 0.85, gkName: 'Gatito Fernández',       gkNote: 'por debajo — Cerro Porteño, 38 años' },
+  'Australia':          { gkFactor: 1.03, setBonus: 0.01, depthFactor: 0.90, gkName: 'Mat Ryan',               gkNote: 'promedio — Levante LaLiga, 103 caps' },
+  'Turquía':            { gkFactor: 0.99, setBonus: 0.02, depthFactor: 1.00, gkName: 'Ugurcan Çakir',          gkNote: 'sólido — Galatasaray CL, confirmado titular' },
+  // ── Grupo E ──
+  'Alemania':           { gkFactor: 1.01, setBonus: 0.04, depthFactor: 1.10, gkName: 'Manuel Neuer',           gkNote: 'declive — 40 años, regresó retiro tras ter Stegen ❌' },
+  'Curazao':            { gkFactor: 1.08, setBonus: -0.02, depthFactor: 0.70, gkName: 'Eloy Room',              gkNote: 'débil — Miami FC USL, 37 años' },
+  'Costa de Marfil':    { gkFactor: 1.03, setBonus: 0.02, depthFactor: 0.95, gkName: 'Yahia Fofana',           gkNote: 'promedio — Rizespor Süper Lig, 25 años' },
+  'Ecuador':            { gkFactor: 1.02, setBonus: 0.02, depthFactor: 0.90, gkName: 'Hernán Galíndez',        gkNote: 'promedio — Huracán Argentina, 39 años' },
+  // ── Grupo F ──
+  'Países Bajos':       { gkFactor: 1.02, setBonus: 0.04, depthFactor: 1.10, gkName: 'Bart Verbruggen',        gkNote: 'promedio — Brighton; Van Dijk headers elevan bonus' },
+  'Japón':              { gkFactor: 1.00, setBonus: 0.02, depthFactor: 1.00, gkName: 'Zion Suzuki',            gkNote: 'sólido — Parma Serie A, 23 años, No.1 indiscutido' },
+  'Suecia':             { gkFactor: 1.05, setBonus: 0.03, depthFactor: 0.85, gkName: 'Robin Olsen',            gkNote: 'por debajo — Malmö FF, 36; Gyökeres headers' },
+  'Túnez':              { gkFactor: 1.06, setBonus: 0.01, depthFactor: 0.80, gkName: 'Aymen Dahmen',           gkNote: 'por debajo — CS Sfaxien doméstico' },
+  // ── Grupo G ──
+  'Bélgica':            { gkFactor: 0.91, setBonus: 0.05, depthFactor: 1.10, gkName: 'Thibaut Courtois',       gkNote: 'élite — IFFHS mejor portero 2025-26, 132 saves RM' },
+  'Egipto':             { gkFactor: 1.04, setBonus: 0.04, depthFactor: 0.80, gkName: 'Mohamed El-Shenawy',    gkNote: 'promedio — Al-Ahly doméstico; Salah FKs elevan bonus' },
+  'Irán':               { gkFactor: 1.03, setBonus: 0.01, depthFactor: 0.80, gkName: 'Alireza Beiranvand',     gkNote: 'promedio — 80+ caps, inconsistente en áereo' },
+  'Nueva Zelanda':      { gkFactor: 1.07, setBonus: -0.02, depthFactor: 0.65, gkName: 'Max Crocombe',           gkNote: 'por debajo — Millwall Championship' },
+  // ── Grupo H ──
+  'España':             { gkFactor: 0.97, setBonus: 0.03, depthFactor: 1.20, gkName: 'Unai Simón',             gkNote: 'sólido — 5 CS en 6 clasif, distribución activa' },
+  'Cabo Verde':         { gkFactor: 1.06, setBonus: 0.02, depthFactor: 0.70, gkName: 'Vozinha',                gkNote: 'promedio — semiprofesional' },
+  'Arabia Saudita':     { gkFactor: 1.04, setBonus: 0.01, depthFactor: 0.75, gkName: 'Nawaf Al-Aqidi',         gkNote: 'promedio — Saudi Pro League' },
+  'Uruguay':            { gkFactor: 1.01, setBonus: 0.04, depthFactor: 0.85, gkName: 'Sergio Rochet',          gkNote: 'sólido — Internacional Brasil; Núñez headers' },
+  // ── Grupo I ──
+  'Francia':            { gkFactor: 0.94, setBonus: 0.06, depthFactor: 1.15, gkName: 'Mike Maignan',           gkNote: 'élite — líder saves Serie A 2025-26, Golden Glove fav.' },
+  'Senegal':            { gkFactor: 1.00, setBonus: 0.03, depthFactor: 0.85, gkName: 'Edouard Mendy',          gkNote: 'sólido — 34 años, 2x AFCON, pasado pico' },
+  'Irak':               { gkFactor: 1.07, setBonus: 0.01, depthFactor: 0.72, gkName: 'Jalal Hassan',           gkNote: 'promedio — 100 caps, volviendo de lesión' },
+  'Noruega':            { gkFactor: 1.03, setBonus: 0.08, depthFactor: 0.80, gkName: 'Ørjan Nyland',           gkNote: 'promedio — Sevilla backup; Haaland 1.93m headers' },
+  // ── Grupo J ──
+  'Argentina':          { gkFactor: 0.90, setBonus: 0.09, depthFactor: 1.15, gkName: 'Emiliano Martínez',      gkNote: 'élite — 3x mejor portero torneo (WC22+Copa21+Copa24)' },
+  'Argelia':            { gkFactor: 1.04, setBonus: 0.02, depthFactor: 0.80, gkName: 'Raïs M\'Bolhi',          gkNote: 'promedio — 38 años, veterano AFCON' },
+  'Austria':            { gkFactor: 1.02, setBonus: 0.03, depthFactor: 0.85, gkName: 'Patrick Pentz',          gkNote: 'sólido — Brøndby, 78.1% save%; Arnautovic headers' },
+  'Jordan':             { gkFactor: 1.06, setBonus: -0.01, depthFactor: 0.70, gkName: 'Yazeed Abu Laila',       gkNote: 'promedio — Al-Wehdat doméstico, primer WC' },
+  // ── Grupo K ──
+  'Portugal':           { gkFactor: 0.93, setBonus: 0.07, depthFactor: 1.20, gkName: 'Diogo Costa',            gkNote: 'élite — 3 penales Euro 2024, 21 CS Liga Portugal' },
+  'Rep. Dem. Congo':    { gkFactor: 1.04, setBonus: 0.01, depthFactor: 0.75, gkName: 'Matthieu Epolo',          gkNote: 'promedio — Standard Liège Bélgica' },
+  'Uzbekistán':         { gkFactor: 1.06, setBonus: 0.00, depthFactor: 0.72, gkName: 'Utkir Yusupov',          gkNote: 'promedio — liga doméstica, primer WC' },
+  'Colombia':           { gkFactor: 1.01, setBonus: 0.03, depthFactor: 0.90, gkName: 'Camilo Vargas',          gkNote: 'sólido — Atlas Liga MX, 111 saves 2025-26' },
+  // ── Grupo L ──
+  'Inglaterra':         { gkFactor: 0.98, setBonus: 0.08, depthFactor: 1.20, gkName: 'Jordan Pickford',         gkNote: 'sólido — 0 goles contra en clasif europeas; Kane/Bellingham corners' },
+  'Croacia':            { gkFactor: 0.99, setBonus: 0.03, depthFactor: 0.85, gkName: 'Dominik Livaković',       gkNote: 'sólido — héroe penales WC 2022' },
+  'Ghana':              { gkFactor: 1.06, setBonus: 0.01, depthFactor: 0.75, gkName: 'Lawrence Ati-Zigi',       gkNote: 'promedio — St. Gallen Suiza' },
+  'Panamá':             { gkFactor: 1.04, setBonus: -0.01, depthFactor: 0.75, gkName: 'Orlando Mosquera',        gkNote: 'promedio — Al-Fayha; sin exp. WC' },
+  // ── Fuera del draw WC (en TEAM_STATS histórico) ──
+  'Serbia':             { gkFactor: 1.01, setBonus: 0.03, depthFactor: 0.90, gkName: 'Predrag Rajković',        gkNote: 'sólido — Mallorca LaLiga' },
+  'Venezuela':          { gkFactor: 1.04, setBonus: 0.01, depthFactor: 0.78, gkName: 'Rafael Romo',             gkNote: 'promedio — MLS nivel' },
+  'Perú':               { gkFactor: 1.03, setBonus: 0.02, depthFactor: 0.80, gkName: 'Pedro Gallese',           gkNote: 'promedio — Orlando City MLS, 120+ caps' },
+  'Ucrania':            { gkFactor: 1.01, setBonus: 0.03, depthFactor: 0.90, gkName: 'Andriy Lunin',            gkNote: 'sólido — Real Madrid backup' },
+  'Polonia':            { gkFactor: 1.00, setBonus: 0.03, depthFactor: 0.90, gkName: 'Wojciech Szczęsny',       gkNote: 'sólido — ex-Juventus/Barcelona, 80+ caps' },
+};
+
 function getAdjustedStats(team) {
   const base = TEAM_STATS[team] || [AVG, AVG];
   const adj = TEAM_ADJUSTMENTS[team];
   const form = TOURNAMENT_FORM[team];
-  const atkBase = adj ? base[0] * adj.atkMult : base[0];
-  const defBase = adj ? base[1] * adj.defMult : base[1];
-  // Peso progresivo (form.w): 7% MD1 → 14% MD2 → 20% MD3+ (Baker & McHale 2015)
+  const prof = TEAM_PROFILE[team] || { gkFactor: 1.00, setBonus: 0.03, depthFactor: 0.85 };
+
+  // 1. Injury/suspension adjustments modulated by squad depth
+  // Equipos profundos: injury duele MENOS / Equipos superficiales: injury duele MÁS
+  // effectiveMult = 1 + (rawMult - 1) / depthFactor
+  let atkMult = 1.0, defMult = 1.0;
+  if (adj) {
+    atkMult = 1 + (adj.atkMult - 1) / prof.depthFactor;
+    defMult = 1 + (adj.defMult - 1) / prof.depthFactor;
+  }
+  let atkBase = base[0] * atkMult;
+  let defBase = base[1] * defMult;
+
+  // 2. GK quality factor — captura calidad portero más allá del sistema defensivo
+  // DEF = xGA concedidos/partido; gkFactor < 1 → élite → baja xGA efectivo
+  const defGK = defBase * prof.gkFactor;
+
+  // 3. Set-piece specialization bonus — goles/partido sobre el promedio WC desde BP
+  // Captura especialización que subestiman las clasificatorias
+  const atkSP = atkBase + prof.setBonus;
+
+  // 4. Tournament form (peso progresivo: 7% MD1 → 14% MD2 → 20% MD3+, Baker & McHale 2015)
   const fw = form ? (form.w !== undefined ? form.w : 0.20) : 0;
-  const atkFinal = form ? atkBase * (1 - fw + fw * form.formMult) : atkBase;
-  const defFinal = form ? defBase * (1 - fw + fw * form.defMult) : defBase;
+  const atkFinal = form ? atkSP * (1 - fw + fw * form.formMult) : atkSP;
+  const defFinal = form ? defGK * (1 - fw + fw * form.defMult) : defGK;
+
   return [+atkFinal.toFixed(3), +defFinal.toFixed(3)];
 }
 
