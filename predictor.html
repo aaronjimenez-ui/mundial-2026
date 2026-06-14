@@ -171,7 +171,7 @@
 <header>
   <h1>⚽ MUNDIAL 2026 — <span>Predictor Matemático</span></h1>
   <div class="header-meta">
-    Modelo v5.2: Poisson Bivariado + Dixon-Coles + Elo + GK Quality + Set-Pieces + Squad Depth<br>
+    Modelo v5.3: Poisson Bivariado + Dixon-Coles + Elo + GK Quality + Set-Pieces + Squad Depth<br>
     Actualizado: <span id="update-date"></span> · 72 partidos fase de grupos
   </div>
 </header>
@@ -280,16 +280,15 @@ function getLambdas(teamA, teamB, homeBonus) {
 
   // Underdog dampening: equipo débil juega ultra-defensivo vs favorito (aplica siempre gap > 100)
   // Evidencia MD1: RSA 0.18 xG, PAR 0.59 xG, CZE 0.81 xG (todos < modelo)
-  if (eloGap > 100) xgLB *= 0.90;
-  else if (eloGap < -100) xgLA *= 0.90;
+  // CALIBRADO MD1: umbral bajado de 100 a 80. NED-JPN gap=80 demostró bloque bajo estructurado.
+  if (eloGap > 79) xgLB *= 0.90;
+  else if (eloGap < -79) xgLA *= 0.90;
 
-  // Favorite dampening: favorito enfrenta bloque bajo → genera menos que su ATK base
-  // CALIBRADO MD1: Solo aplica para gaps MODERADOS (100-300). Para gaps extremos (>300),
-  // el equipo muy débil NO puede organizar bloque bajo estructurado → GER 7-1 CUR (gap 370).
-  // Evidencia gaps moderados: TUR λ 1.48 → 0 goles vs AUS (gap 130); BRA λ 1.23 → 0.85 xG (gap 154)
+  // Favorite dampening: solo para gaps MODERADOS (80-300). Gaps >300: sin dampening.
+  // Evidencia: TUR (gap 130) → 0 goles; BRA (gap 154) → 0.85 xG; JPN (gap 80) → bloque bajo real
   const absgap = Math.abs(eloGap);
-  if (eloGap > 100 && absgap <= 300) xgLA *= FAV_DAMP;
-  else if (eloGap < -100 && absgap <= 300) xgLB *= FAV_DAMP;
+  if (eloGap > 79 && absgap <= 300) xgLA *= FAV_DAMP;
+  else if (eloGap < -79 && absgap <= 300) xgLB *= FAV_DAMP;
 
   // Elo fallback (35% blend)
   const f = Math.exp((eloA - eloB) / ELO_SCALE);
@@ -657,11 +656,11 @@ const TOURNAMENT_FORM = {
   // ── Grupo B — Jun 12-13 ──
   'Canadá':             { formMult: 1.00, defMult: 0.98, w: 0.07 },  // 1-1 vs Bosnia — neutro ataque; defensa levemente mejor (-2%)
   'Bosnia-Herzegovina': { formMult: 1.00, defMult: 1.00, w: 0.07 },  // 1-1 vs Canadá — neutro, gol de córner (set piece)
-  'Catar':              { formMult: 0.90, defMult: 0.90, w: 0.07 },  // 1-1 vs Suiza — 7 tiros, xG 0.76 vs 3.24 | Abunada heroico (portero) | ofensiva débil confirmada
-  'Suiza':              { formMult: 1.10, defMult: 1.08, w: 0.07 },  // 1-1 vs Catar — 26 tiros, 3.24 xG, 68% posesión | clínica fallida, gol en 90+4 set-piece
+  'Catar':              { formMult: 0.88, defMult: 0.85, w: 0.07 },  // 1-1 vs SUI — 7 tiros xG 0.76 (ofensiva nula); Abunada MOTM 5 saves 3.24 xG — DEF mejor de lo esperado
+  'Suiza':              { formMult: 1.08, defMult: 1.12, w: 0.07 },  // 1-1 vs QAT — 3.24 xG 26 tiros ok; conversión 0.31x (definición fallida); DEF vulnerable set piece 90+4
   // ── Grupo C — Jun 13 ──
-  'Brasil':             { formMult: 0.92, defMult: 1.05, w: 0.07 },  // 1-1 vs Marruecos — xG 0.85 vs 1.22 | underperformó sin Neymar; Alisson salvó en 90+9
-  'Marruecos':          { formMult: 1.10, defMult: 1.02, w: 0.07 },  // 1-1 vs Brasil — xG 1.22, dominó 1ra mitad (12 tiros 45') | Hakimi-Brahim Díaz dupla real
+  'Brasil':             { formMult: 0.90, defMult: 1.00, w: 0.07 },  // 1-1 vs MAR — xG 0.85 (más bajo favorito MD1); Alisson concedió 1 de 1.22 xG MAR — DEF en nivel modelo
+  'Marruecos':          { formMult: 1.12, defMult: 0.96, w: 0.07 },  // 1-1 vs BRA — xG 1.22 vs Elo+154, 12 tiros 45'; bloque bajo organizado vs favorito élite confirmado
   'Haití':              { formMult: 1.05, defMult: 1.00, w: 0.07 },  // 0-1 vs Escocia — xG 1.21 vs 1.05, 15 tiros, 54% posesión post-gol | sin conversión pese a dominio
   'Escocia':            { formMult: 0.97, defMult: 0.88, w: 0.07 },  // 1-0 vs Haití — xG 1.05 vs HAI 1.21 | McGinn 28'; defensa sólida sin McKenna (aguantó 15 tiros)
   // ── Grupo D — Jun 12 ──
@@ -697,7 +696,7 @@ const TEAM_PROFILE = {
   // ── Grupo B ──
   'Canadá':             { gkFactor: 1.03, setBonus: 0.02, depthFactor: 0.95, gkName: 'Maxime Crépeau',       gkNote: 'promedio — MLS nivel' },
   'Bosnia-Herzegovina': { gkFactor: 1.03, setBonus: 0.01, depthFactor: 0.90, gkName: 'Nikola Vasilj',        gkNote: 'promedio — St. Pauli Bundesliga' },
-  'Catar':              { gkFactor: 0.95, setBonus: 0.01, depthFactor: 0.80, gkName: 'Mahmoud Abunada',       gkNote: 'sólido — MOTM MD1 (5 saves vs SUI 3.24 xG)' },
+  'Catar':              { gkFactor: 0.93, setBonus: 0.01, depthFactor: 0.80, gkName: 'Mahmoud Abunada',       gkNote: 'muy bueno — MOTM MD1 (5 saves vs 3.24 xG SUI); ajuste conservador post-MD1' },
   'Suiza':              { gkFactor: 0.93, setBonus: 0.03, depthFactor: 1.10, gkName: 'Gregor Kobel',          gkNote: 'élite — Dortmund, 15 CS Bundesliga 2025-26' },
   // ── Grupo C ──
   'Brasil':             { gkFactor: 0.91, setBonus: 0.05, depthFactor: 1.15, gkName: 'Alisson Becker',        gkNote: 'élite — Liverpool, ~87% save rate CL' },
@@ -716,7 +715,7 @@ const TEAM_PROFILE = {
   'Ecuador':            { gkFactor: 1.02, setBonus: 0.02, depthFactor: 0.90, gkName: 'Hernán Galíndez',        gkNote: 'promedio — Huracán Argentina, 39 años' },
   // ── Grupo F ──
   'Países Bajos':       { gkFactor: 1.02, setBonus: 0.04, depthFactor: 1.10, gkName: 'Bart Verbruggen',        gkNote: 'promedio — Brighton; Van Dijk headers elevan bonus' },
-  'Japón':              { gkFactor: 1.00, setBonus: 0.02, depthFactor: 1.00, gkName: 'Zion Suzuki',            gkNote: 'sólido — Parma Serie A, 23 años, No.1 indiscutido' },
+  'Japón':              { gkFactor: 0.98, setBonus: 0.02, depthFactor: 1.00, gkName: 'Zion Suzuki',            gkNote: 'sólido — Parma Serie A, 23 años; ratio 0.95x vs NED (2G de 2.1 xG) — ajuste menor post-MD1' },
   'Suecia':             { gkFactor: 1.05, setBonus: 0.03, depthFactor: 0.85, gkName: 'Robin Olsen',            gkNote: 'por debajo — Malmö FF, 36; Gyökeres headers' },
   'Túnez':              { gkFactor: 1.06, setBonus: 0.01, depthFactor: 0.80, gkName: 'Aymen Dahmen',           gkNote: 'por debajo — CS Sfaxien doméstico' },
   // ── Grupo G ──
