@@ -1260,8 +1260,9 @@ function renderLeaderboard() {
     </div>
     <div style="width:1px;background:var(--bd);margin:4px 0;"></div>
     <div style="flex:1;text-align:center;padding:4px 0;">
-      <div style="font-size:19px;font-weight:900;font-family:var(--mono);color:var(--green);">${finished}${liveNow > 0 ? `<span style="font-size:11px;color:var(--green);animation:pulse 1.5s infinite;margin-left:3px;">+${liveNow}</span>` : ''}</div>
-      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:var(--t3);">${liveNow > 0 ? 'Jugados · EN VIVO' : 'Jugados'}</div>
+      <div style="font-size:19px;font-weight:900;font-family:var(--mono);color:var(--green);">${finished}</div>
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:var(--t3);">Terminados</div>
+      ${liveNow > 0 ? `<div style="font-size:10px;font-weight:700;color:var(--green);animation:pulse 1.5s infinite;margin-top:2px;">🔴 ${liveNow} en vivo</div>` : ''}
     </div>
     <div style="width:1px;background:var(--bd);margin:4px 0;"></div>
     <div style="flex:1;text-align:center;padding:4px 0;">
