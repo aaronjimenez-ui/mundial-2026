@@ -422,10 +422,13 @@ const RESULTS = {
   'Corea del Sur-Chequia':      { a: 2, b: 1 },  // MD1 Grupo A — Jun 11
   'Canadá-Bosnia-Herzegovina':  { a: 1, b: 1 },  // MD1 Grupo B — Jun 12
   'EE.UU.-Paraguay':            { a: 4, b: 1 },  // MD1 Grupo D — Jun 12
+  'Catar-Suiza':                { a: 1, b: 1 },  // MD1 Grupo B — Jun 13 | Khoukhi 90+4 cabezazo; Suiza dominó (26 tiros, 3.24 xG)
+  'Brasil-Marruecos':           { a: 1, b: 1 },  // MD1 Grupo C — Jun 13 | Saibari 21' / Vinícius 32'; MAR dominó 1ra mitad (xG 1.22 vs 0.85)
+  'Haití-Escocia':              { a: 0, b: 1 },  // MD1 Grupo C — Jun 13 | McGinn 28'; HAI generó más xG (1.21 vs 1.05) sin conversión
 };
 
 // Partidos de hoy (fecha actual)
-const TODAY_MATCHES = ['Catar-Suiza', 'Brasil-Marruecos', 'Haití-Escocia'];
+const TODAY_MATCHES = ['Australia-Turquía', 'Alemania-Curazao', 'Costa de Marfil-Ecuador', 'Países Bajos-Japón', 'Suecia-Túnez'];
 
 function getResult(home, away) {
   return RESULTS[`${home}-${away}`] || RESULTS[`${away}-${home}`] || null;
@@ -519,12 +522,12 @@ const TEAM_CONTEXT = {
   'Catar':              { dt:'Bartolomeu Sousa', star:'Al-Haydos', inj:'' },
   'Suiza':              { dt:'Murat Yakin', star:'G.Xhaka', inj:'' },
   // ── Grupo C (MD1 hoy) ──
-  'Brasil':             { dt:'Carlo Ancelotti', star:'Vinícius Jr.', inj:'Rodrygo ❌ (ACL, torneo) + Estêvão ❌ (isquio) + Neymar ❌ MD1 (gemelo) + Militao ❌ (muslo)' },
-  'Marruecos':          { dt:'Walid Regragui', star:'Hakimi', inj:'Ezzalzouli ❌ (rodilla) + Aguerd ❌ (pubalgia)' },
-  'Haití':              { dt:'Marc Collat', star:'Frantzdy Pierrot', inj:'' },
-  'Escocia':            { dt:'Steve Clarke', star:'Robertson', inj:'McKenna ❌ (gemelo, CB) + Adams 🤔 (muslo) + B.Gilmour 🤔' },
+  'Brasil':             { dt:'Carlo Ancelotti', star:'Vinícius Jr.', inj:'Rodrygo ❌ (ACL, torneo) + Estêvão ❌ (isquio) + Neymar ❌ MD1 (gemelo grado 2) + Militao ❌ (muslo) · Casemiro 🟨 + R.Ibáñez 🟨 riesgo susp MD2' },
+  'Marruecos':          { dt:'Walid Regragui', star:'Hakimi', inj:'Ezzalzouli ❌ (rodilla) + Aguerd ❌ (pubalgia) · Mazraoui 🤔 (jugó sub 80 vs BRA, MD2 incierta)' },
+  'Haití':              { dt:'Marc Collat', star:'Frantzdy Pierrot', inj:'MD1: generaron más xG que Escocia (1.21 vs 1.05) sin convertir' },
+  'Escocia':            { dt:'Steve Clarke', star:'Robertson', inj:'McKenna ❌ (gemelo, CB) + Adams 🤔 (muslo) + B.Gilmour 🤔 · ganaron eficientemente 1-0 (bloc bajo)' },
   // ── Grupo D (MD1 jugado / por jugar) ──
-  'EE.UU.':             { dt:'M.Pochettino', star:'Pulisic', inj:'Agyemang ❌ (Aquiles) · T.Adams 🟨 riesgo susp MD2' },
+  'EE.UU.':             { dt:'M.Pochettino', star:'Pulisic', inj:'Agyemang ❌ (Aquiles) · T.Adams 🟨 riesgo susp MD2 · Pulisic 🤔 (pantorrilla, optimista MD2)' },
   'Paraguay':           { dt:'Gustavo Alfaro', star:'M.Almirón', inj:'Enciso ❌ (Aquiles) · Almiron 🟨 + Gomez 🟨 + Alonso 🟨 riesgo susp MD2' },
   'Australia':          { dt:'Tony Popovic', star:'M.Leckie', inj:'' },
   'Turquía':            { dt:'V.Montella', star:'Arda Güler', inj:'' },
@@ -577,11 +580,11 @@ const TEAM_ADJUSTMENTS = {
   'Sudáfrica':    { atkMult: 0.90, defMult: 1.15, note: '−10% ATK +15% xGA MD2 · Sithole 🟥 susp + Zwane 🟥 susp (ambos MD2)' },
   'Canadá':       { atkMult: 0.94, defMult: 1.00, note: '−6% ATK · Flores ❌ (ACL) + Bombito ❌ (tibia) · Johnston 🟨 riesgo susp' },
   'Paraguay':     { atkMult: 0.88, defMult: 1.08, note: '−12% ATK +8% xGA · Enciso ❌ (Aquiles) · 🟨 Almiron+Gomez+Alonso riesgo suspensión MD2' },
-  'EE.UU.':       { atkMult: 1.00, defMult: 1.00, note: '· T.Adams 🟨 riesgo suspensión MD2' },
+  'EE.UU.':       { atkMult: 1.00, defMult: 1.00, note: '· T.Adams 🟨 riesgo susp MD2 · Pulisic 🤔 (pantorrilla, optimista MD2)' },
   // ── Grupo C (MD1 hoy) ──
-  'Brasil':       { atkMult: 0.85, defMult: 1.00, note: '−15% ATK · Rodrygo ❌ (ACL, torneo completo) + Estêvão ❌ (isquio) + Neymar ❌ MD1 (gemelo grado 2)' },
-  'Marruecos':    { atkMult: 0.90, defMult: 1.10, note: '−10% ATK +10% xGA · Ezzalzouli ❌ (rodilla) + Aguerd ❌ (pubalgia)' },
-  'Escocia':      { atkMult: 1.00, defMult: 1.08, note: '+8% xGA · McKenna ❌ (gemelo, CB titular) + Adams 🤔 (muslo)' },
+  'Brasil':       { atkMult: 0.85, defMult: 1.02, note: '−15% ATK +2% xGA · Rodrygo ❌ (ACL, torneo) + Estêvão ❌ (isquio) + Neymar ❌ MD1 (gemelo grado 2) · Casemiro 🟨 + R.Ibáñez 🟨 riesgo susp MD2' },
+  'Marruecos':    { atkMult: 0.90, defMult: 1.08, note: '−10% ATK +8% xGA · Ezzalzouli ❌ (rodilla) + Aguerd ❌ (pubalgia) · Mazraoui 🤔 (jugó sub 80 vs BRA, MD2 incierta)' },
+  'Escocia':      { atkMult: 1.00, defMult: 1.08, note: '+8% xGA · McKenna ❌ (gemelo, CB titular) + Adams 🤔 (muslo) · ganaron MD1 eficientemente (1-0 vs HAI)' },
   // ── Grupos E-L (pre-MD1) ──
   'Países Bajos': { atkMult: 0.90, defMult: 1.18, note: '−10% ATK +18% xGA · Timber ❌ (ingle) + Simons ❌ (ACL) + De Ligt ❌ (espalda)' },
   'Japón':        { atkMult: 0.88, defMult: 1.03, note: '−12% ATK +3% xGA · Mitoma ❌ (isquio) + Minamino ❌ (ACL) + Endo 🤔 (pie)' },
@@ -601,12 +604,22 @@ const TEAM_ADJUSTMENTS = {
 // Peso progresivo: w=0.07 MD1 → 0.14 MD2 → 0.20 MD3+ (Baker & McHale 2015 — mínimo 4 obs para 20%)
 // ═══════════════════════════════════════════════════
 const TOURNAMENT_FORM = {
+  // ── Grupo A — Jun 11 ──
   'México':             { formMult: 1.10, defMult: 0.93, w: 0.07 },  // 2-0 vs Sudáfrica — eficiencia + solidez defensiva previa a expulsiones
   'Sudáfrica':          { formMult: 0.85, defMult: 1.18, w: 0.07 },  // 0-2 vs México — 3 tiros en 49min, gol min 9, 2 rojas — fragilidad mental confirmada
   'Corea del Sur':      { formMult: 1.10, defMult: 0.95, w: 0.07 },  // 2-1 vs Chequia — xG real 2.15 vs lambda 1.38, remontada, defensa sólida
   'Chequia':            { formMult: 0.88, defMult: 1.15, w: 0.07 },  // 1-2 vs KOR — 4 tiros, posesión 38.3%, gol de long throw
+  // ── Grupo B — Jun 12-13 ──
   'Canadá':             { formMult: 1.00, defMult: 0.98, w: 0.07 },  // 1-1 vs Bosnia — neutro ataque; defensa levemente mejor (-2%)
   'Bosnia-Herzegovina': { formMult: 1.00, defMult: 1.00, w: 0.07 },  // 1-1 vs Canadá — neutro, gol de córner (set piece)
+  'Catar':              { formMult: 0.90, defMult: 0.90, w: 0.07 },  // 1-1 vs Suiza — 7 tiros, xG 0.76 vs 3.24 | Abunada heroico (portero) | ofensiva débil confirmada
+  'Suiza':              { formMult: 1.10, defMult: 1.08, w: 0.07 },  // 1-1 vs Catar — 26 tiros, 3.24 xG, 68% posesión | clínica fallida, gol en 90+4 set-piece
+  // ── Grupo C — Jun 13 ──
+  'Brasil':             { formMult: 0.92, defMult: 1.05, w: 0.07 },  // 1-1 vs Marruecos — xG 0.85 vs 1.22 | underperformó sin Neymar; Alisson salvó en 90+9
+  'Marruecos':          { formMult: 1.10, defMult: 1.02, w: 0.07 },  // 1-1 vs Brasil — xG 1.22, dominó 1ra mitad (12 tiros 45') | Hakimi-Brahim Díaz dupla real
+  'Haití':              { formMult: 1.05, defMult: 1.00, w: 0.07 },  // 0-1 vs Escocia — xG 1.21 vs 1.05, 15 tiros, 54% posesión post-gol | sin conversión pese a dominio
+  'Escocia':            { formMult: 0.97, defMult: 0.88, w: 0.07 },  // 1-0 vs Haití — xG 1.05 vs HAI 1.21 | McGinn 28'; defensa sólida sin McKenna (aguantó 15 tiros)
+  // ── Grupo D — Jun 12 ──
   'EE.UU.':             { formMult: 1.18, defMult: 0.90, w: 0.07 },  // 4-1 vs Paraguay — 17 tiros, 5 SOT, 72% posesión, dominancia total
   'Paraguay':           { formMult: 0.85, defMult: 1.20, w: 0.07 },  // 1-4 vs EE.UU. — 8 tiros 1 SOT, fragilidad defensiva real
 };
