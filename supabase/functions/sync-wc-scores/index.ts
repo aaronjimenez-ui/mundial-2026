@@ -2,8 +2,15 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const ADMIN_EMAIL = "jimenezaaron5@gmail.com";
-const ESPN_URL = "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard";
 const CRON_SECRET = "mnd26cron-be84f946f3623b9c";
+
+function getEspnUrl(): string {
+  const d = new Date();
+  const yyyymmdd = d.getUTCFullYear().toString()
+    + String(d.getUTCMonth() + 1).padStart(2, '0')
+    + String(d.getUTCDate()).padStart(2, '0');
+  return `https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?dates=${yyyymmdd}`;
+}
 
 function getMatchMinute(comp: any, state: string): string | null {
   if (state !== 'in') return null;
@@ -42,7 +49,7 @@ async function syncScores() {
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-  const apiRes = await fetch(ESPN_URL);
+  const apiRes = await fetch(getEspnUrl());
   if (!apiRes.ok) return { error: "ESPN API error", status: apiRes.status };
 
   const data = await apiRes.json();
