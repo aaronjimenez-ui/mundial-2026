@@ -578,6 +578,24 @@ function toast(msg, ms = 2800) {
   _tt = setTimeout(() => { el.style.opacity = '0'; }, ms);
 }
 
+const _autoSaveTimers = {};
+function scheduleAutoSave(matchId) {
+  const phEl = document.getElementById(`ph-${matchId}`);
+  const paEl = document.getElementById(`pa-${matchId}`);
+  if (!phEl || !paEl) return;
+  const ph = parseInt(phEl.value);
+  const pa = parseInt(paEl.value);
+  if (isNaN(ph) || isNaN(pa) || ph < 0 || pa < 0) return;
+  const btn = document.getElementById(`btn-${matchId}`);
+  if (btn && !btn.disabled) {
+    btn.style.background = 'var(--gold)';
+    btn.style.color = '#000';
+    btn.textContent = '● Guardar';
+  }
+  clearTimeout(_autoSaveTimers[matchId]);
+  _autoSaveTimers[matchId] = setTimeout(() => savePred(matchId), 1500);
+}
+
 function getDefaultWeek() {
   const today = cltDate(new Date().toISOString());
   for (let i = WEEKS.length - 1; i >= 0; i--) {
@@ -906,10 +924,12 @@ function buildMatchCard(m) {
       <div style="display:flex;align-items:center;gap:8px;">
         <input type="number" min="0" max="20" class="score-box" id="ph-${m.id}"
           value="${hasPred ? pred.pred_home : ''}" placeholder="–"
+          oninput="scheduleAutoSave('${m.id}')"
           onkeydown="if(event.key==='Enter') savePred('${m.id}')" />
         <span style="font-size:18px;color:var(--bd);font-weight:700;">:</span>
         <input type="number" min="0" max="20" class="score-box" id="pa-${m.id}"
           value="${hasPred ? pred.pred_away : ''}" placeholder="–"
+          oninput="scheduleAutoSave('${m.id}')"
           onkeydown="if(event.key==='Enter') savePred('${m.id}')" />
       </div>
       <button class="btn btn-primary btn-sm" id="btn-${m.id}" onclick="savePred('${m.id}')">
@@ -996,6 +1016,7 @@ async function savePred(matchId) {
   );
 
   btn.disabled = false; btn.textContent = orig;
+  btn.style.background = ''; btn.style.color = '';
 
   if (error) {
     /* Handle RLS lock violation */
@@ -1012,7 +1033,7 @@ async function savePred(matchId) {
   }
 
   userPreds[matchId] = { match_id: matchId, user_id: currentUser.id, display_name: getMyDisplayName(), pred_home: ph, pred_away: pa, points: 0 };
-  toast('✓ Apuesta guardada');
+  toast(`✓ Guardada: ${ph} – ${pa}`);
   renderMatches();
 }
 
