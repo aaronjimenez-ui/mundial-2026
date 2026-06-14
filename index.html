@@ -86,6 +86,8 @@
     .score-box:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(74,144,217,0.2); }
     .score-box:disabled { opacity: 0.35; cursor: not-allowed; }
     .score-box::placeholder { color: var(--t3); font-size: 14px; }
+    .score-box.unsaved { border-color: #f59e0b !important; box-shadow: 0 0 0 3px rgba(245,158,11,0.25) !important; }
+    .score-box.saved   { border-color: #22c55e !important; box-shadow: 0 0 0 3px rgba(34,197,94,0.25) !important; }
 
     /* ── Buttons ── */
     .btn { border: none; border-radius: 10px; font-family: var(--sans); font-weight: 600; cursor: pointer; transition: all 0.18s; font-size: 13px; }
@@ -586,6 +588,8 @@ function scheduleAutoSave(matchId) {
   const ph = parseInt(phEl.value);
   const pa = parseInt(paEl.value);
   if (isNaN(ph) || isNaN(pa) || ph < 0 || pa < 0) return;
+  phEl.classList.add('unsaved'); phEl.classList.remove('saved');
+  paEl.classList.add('unsaved'); paEl.classList.remove('saved');
   const btn = document.getElementById(`btn-${matchId}`);
   if (btn && !btn.disabled) {
     btn.style.background = 'var(--gold)';
@@ -1023,6 +1027,10 @@ async function savePred(matchId) {
     const isRLS = error.code === '42501' ||
       (error.message || '').toLowerCase().includes('row-level') ||
       (error.message || '').toLowerCase().includes('policy');
+    const phElErr = document.getElementById(`ph-${matchId}`);
+    const paElErr = document.getElementById(`pa-${matchId}`);
+    if (phElErr) { phElErr.classList.remove('saved'); phElErr.classList.add('unsaved'); }
+    if (paElErr) { paElErr.classList.remove('saved'); paElErr.classList.add('unsaved'); }
     if (isRLS) {
       const hadPrev = !!userPreds[matchId];
       toast(hadPrev ? '🔒 Partido iniciado — tu apuesta anterior sigue guardada' : '🔒 Este partido ya no acepta apuestas');
@@ -1031,6 +1039,11 @@ async function savePred(matchId) {
     }
     return;
   }
+
+  const phElOk = document.getElementById(`ph-${matchId}`);
+  const paElOk = document.getElementById(`pa-${matchId}`);
+  if (phElOk) { phElOk.classList.remove('unsaved'); phElOk.classList.add('saved'); }
+  if (paElOk) { paElOk.classList.remove('unsaved'); paElOk.classList.add('saved'); }
 
   userPreds[matchId] = { match_id: matchId, user_id: currentUser.id, display_name: getMyDisplayName(), pred_home: ph, pred_away: pa, points: 0 };
   toast(`✓ Guardada: ${ph} – ${pa}`);
