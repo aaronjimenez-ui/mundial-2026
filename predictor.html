@@ -171,7 +171,7 @@
 <header>
   <h1>⚽ MUNDIAL 2026 — <span>Predictor Matemático</span></h1>
   <div class="header-meta">
-    Modelo v5: Poisson Bivariado + Dixon-Coles + Elo + GK Quality + Set-Pieces + Squad Depth<br>
+    Modelo v5.2: Poisson Bivariado + Dixon-Coles + Elo + GK Quality + Set-Pieces + Squad Depth<br>
     Actualizado: <span id="update-date"></span> · 72 partidos fase de grupos
   </div>
 </header>
@@ -180,7 +180,7 @@
   <div class="method-tag"><strong>MODELO:</strong> Poisson Bivariado</div>
   <div class="method-tag"><strong>CORRECCIÓN:</strong> Dixon-Coles (ρ=-0.07, calibrado WC 2014-2022)</div>
   <div class="method-tag"><strong>RATINGS:</strong> xGF/xGA por equipo + ajuste strength-of-schedule por confederación</div>
-  <div class="method-tag"><strong>BLEND:</strong> 65% xG model + 35% Elo + dampening doble (underdog ×0.90 + favorito ×0.85) + draw prior ×1.35 (calibrado 8 partidos MD1)</div>
+  <div class="method-tag"><strong>BLEND:</strong> 65% xG model + 35% Elo + dampening doble (underdog ×0.90 + favorito ×0.85 solo gap 100-300; gaps &gt;300 sin FAV_DAMP) + draw prior ×1.35 (calibrado 10 partidos MD1)</div>
   <div class="method-tag"><strong>LOCAL:</strong> MEX +0.28 / USA +0.28 / CAN +0.18 (Pollard 2006 + calibración MD1)</div>
   <div class="method-tag"><strong>FORMA:</strong> 20% blend datos in-tournament MD1+ (Baker & McHale 2015 — umbral ≥4 partidos observados)</div>
   <div class="method-tag"><strong>🧤 GK:</strong> gkFactor 0.91–1.10 — portero élite reduce xGA efectivo (Alisson 0.91, E.Martínez 0.93, Abunada 0.95)</div>
@@ -278,15 +278,18 @@ function getLambdas(teamA, teamB, homeBonus) {
   const eloA = ELO[teamA] || 1700, eloB = ELO[teamB] || 1700;
   const eloGap = eloA - eloB;
 
-  // Underdog dampening: equipo débil juega ultra-defensivo vs favorito
+  // Underdog dampening: equipo débil juega ultra-defensivo vs favorito (aplica siempre gap > 100)
   // Evidencia MD1: RSA 0.18 xG, PAR 0.59 xG, CZE 0.81 xG (todos < modelo)
   if (eloGap > 100) xgLB *= 0.90;
   else if (eloGap < -100) xgLA *= 0.90;
 
   // Favorite dampening: favorito enfrenta bloque bajo → genera menos que su ATK base
-  // Evidencia MD1: Brasil 1.23 λ → 0.85 xG real; Turquía 1.48 λ → 0 goles
-  if (eloGap > 100) xgLA *= FAV_DAMP;
-  else if (eloGap < -100) xgLB *= FAV_DAMP;
+  // CALIBRADO MD1: Solo aplica para gaps MODERADOS (100-300). Para gaps extremos (>300),
+  // el equipo muy débil NO puede organizar bloque bajo estructurado → GER 7-1 CUR (gap 370).
+  // Evidencia gaps moderados: TUR λ 1.48 → 0 goles vs AUS (gap 130); BRA λ 1.23 → 0.85 xG (gap 154)
+  const absgap = Math.abs(eloGap);
+  if (eloGap > 100 && absgap <= 300) xgLA *= FAV_DAMP;
+  else if (eloGap < -100 && absgap <= 300) xgLB *= FAV_DAMP;
 
   // Elo fallback (35% blend)
   const f = Math.exp((eloA - eloB) / ELO_SCALE);
@@ -464,10 +467,13 @@ const RESULTS = {
   'Catar-Suiza':                { a: 1, b: 1 },  // MD1 Grupo B — Jun 13 | Khoukhi 90+4 cabezazo; Suiza dominó (26 tiros, 3.24 xG)
   'Brasil-Marruecos':           { a: 1, b: 1 },  // MD1 Grupo C — Jun 13 | Saibari 21' / Vinícius 32'; MAR dominó 1ra mitad (xG 1.22 vs 0.85)
   'Haití-Escocia':              { a: 0, b: 1 },  // MD1 Grupo C — Jun 13 | McGinn 28'; HAI generó más xG (1.21 vs 1.05) sin conversión
+  'Australia-Turquía':          { a: 2, b: 0 },  // MD1 Grupo D — Jun 14 | AUS defensiva WC-level; TUR 0 remates al arco pese a xG 1.82 (xG invertido)
+  'Alemania-Curazao':           { a: 7, b: 1 },  // MD1 Grupo E — Jun 14 | goleada histórica — Elo gap 370 invalida FAV_DAMP (CUR no puede bloque bajo)
+  'Países Bajos-Japón':         { a: 2, b: 2 },  // MD1 Grupo F — Jun 14 | JAP igualó 89' (Tomiyasu); NED sin De Ligt, JAP validó ATK pese a Mitoma❌
 };
 
 // Partidos de hoy (fecha actual)
-const TODAY_MATCHES = ['Australia-Turquía', 'Alemania-Curazao', 'Costa de Marfil-Ecuador', 'Países Bajos-Japón', 'Suecia-Túnez'];
+const TODAY_MATCHES = ['Costa de Marfil-Ecuador', 'Suecia-Túnez'];
 
 function getResult(home, away) {
   return RESULTS[`${home}-${away}`] || RESULTS[`${away}-${home}`] || null;
@@ -568,15 +574,15 @@ const TEAM_CONTEXT = {
   // ── Grupo D (MD1 jugado / por jugar) ──
   'EE.UU.':             { dt:'M.Pochettino', star:'Pulisic', inj:'Agyemang ❌ (Aquiles) · T.Adams 🟨 riesgo susp MD2 · Pulisic 🤔 (pantorrilla, optimista MD2)' },
   'Paraguay':           { dt:'Gustavo Alfaro', star:'M.Almirón', inj:'Enciso ❌ (Aquiles) · Almiron 🟨 + Gomez 🟨 + Alonso 🟨 riesgo susp MD2' },
-  'Australia':          { dt:'Tony Popovic', star:'M.Leckie', inj:'' },
-  'Turquía':            { dt:'V.Montella', star:'Arda Güler', inj:'' },
+  'Australia':          { dt:'Tony Popovic', star:'M.Leckie', inj:'✅ MD1 2-0 vs TUR (Elo 1880) — defensiva física WC-level validada; 0 goles concedidos pese a xGA sup' },
+  'Turquía':            { dt:'V.Montella', star:'Arda Güler', inj:'❌ MD1 0-2 vs AUS — 0 remates al arco en 90\'; Güler contenido; ATK de clasif no se traduce a WC' },
   // ── Grupos E-L (pre-MD1) ──
-  'Alemania':           { dt:'Julian Nagelsmann', star:'Musiala', inj:'Gnabry ❌ (aductor) + ter Stegen ❌ (muslo, torneo)' },
-  'Curazao':            { dt:'Remko Bicentini', star:'Leandro Bacuna', inj:'' },
+  'Alemania':           { dt:'Julian Nagelsmann', star:'Musiala', inj:'Gnabry ❌ (aductor) + ter Stegen ❌ (muslo, torneo) · ✅ MD1 7-1 CUR — goleada histórica; Musiala + Müller desequilibrantes' },
+  'Curazao':            { dt:'Remko Bicentini', star:'Leandro Bacuna', inj:'❌ MD1 1-7 vs GER — defensivamente superados; no formaron bloque bajo efectivo vs Elo gap 370' },
   'Costa de Marfil':    { dt:'Emerse Faé', star:'S.Haller', inj:'Haller 🤔 (fitness) + Diomande ❌ (reemplazado por Pepe)' },
   'Ecuador':            { dt:'S.Beccacece', star:'M.Caicedo', inj:'' },
-  'Países Bajos':       { dt:'Ronald Koeman', star:'De Jong', inj:'Timber ❌ + Simons ❌ (ACL) + De Ligt ❌ (espalda)' },
-  'Japón':              { dt:'Hajime Moriyasu', star:'Kamada', inj:'Mitoma ❌ (isquio) + Minamino ❌ (ACL) + Endo 🤔 (pie)' },
+  'Países Bajos':       { dt:'Ronald Koeman', star:'De Jong', inj:'Timber ❌ + Simons ❌ (ACL) + De Ligt ❌ (espalda) · ⚠️ MD1 2-2 JPN: defensa expuesta sin De Ligt — concedió 2 a equipo lesionado' },
+  'Japón':              { dt:'Hajime Moriyasu', star:'Kamada', inj:'Mitoma ❌ (isquio) + Minamino ❌ (ACL) + Endo 🤔 (pie) · ✅ MD1 2-2 NED: igualó 89\' pese a lesiones — intensidad WC confirmada' },
   'Suecia':             { dt:'Jon Dahl Tomasson', star:'Gyökeres', inj:'' },
   'Túnez':              { dt:'Jalel Kadri', star:'Khazri', inj:'Hannibal Mejbri 🤔 (lesión amistoso)' },
   'Bélgica':            { dt:'Rudi Garcia', star:'De Bruyne', inj:'Lukaku 🤔 (tobillo — <60min amistoso)' },
@@ -661,6 +667,15 @@ const TOURNAMENT_FORM = {
   // ── Grupo D — Jun 12 ──
   'EE.UU.':             { formMult: 1.18, defMult: 0.90, w: 0.07 },  // 4-1 vs Paraguay — 17 tiros, 5 SOT, 72% posesión, dominancia total
   'Paraguay':           { formMult: 0.85, defMult: 1.20, w: 0.07 },  // 1-4 vs EE.UU. — 8 tiros 1 SOT, fragilidad defensiva real
+  // ── Grupo D completion — Jun 14 ──
+  'Australia':          { formMult: 1.22, defMult: 0.80, w: 0.07 },  // 2-0 vs Turquía — bloqueó favorito Elo-1880; defensiva WC-level validada (0 goles concedidos con xGA inf)
+  'Turquía':            { formMult: 0.68, defMult: 1.30, w: 0.07 },  // 0-2 vs Australia — 0 remates al arco pese a xG 1.82; conversión real = 0; ATK de clasif no aplica WC
+  // ── Grupo E — Jun 14 ──
+  'Alemania':           { formMult: 1.35, defMult: 0.92, w: 0.07 },  // 7-1 vs Curazao — goleada histórica; Elo gap 370 → CUR no formó bloque bajo; ATK real > lambda modelo
+  'Curazao':            { formMult: 0.80, defMult: 1.60, w: 0.07 },  // 1-7 vs Alemania — defensivamente superados; 1 gol de consolación
+  // ── Grupo F — Jun 14 ──
+  'Países Bajos':       { formMult: 0.90, defMult: 1.30, w: 0.07 },  // 2-2 vs Japón — Simons❌ De Ligt❌ expuso defensa; concedió más de lo esperado vs equipo lesionado
+  'Japón':              { formMult: 1.22, defMult: 1.02, w: 0.07 },  // 2-2 vs Países Bajos — igualó 89' pese a Mitoma❌ Minamino❌; intensidad WC y conversión validadas
 };
 
 // ═══════════════════════════════════════════════════
