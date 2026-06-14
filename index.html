@@ -389,6 +389,7 @@
           <div id="hdrName" style="font-weight:800;font-size:13px;color:var(--tx);line-height:1.2;">–</div>
           <div id="hdrPts" style="font-size:10px;color:var(--t3);font-weight:600;letter-spacing:0.3px;">0 PUNTOS</div>
         </div>
+        <button id="notifBell" onclick="toggleNotifications()" title="Notificaciones" style="background:none;border:none;font-size:20px;cursor:pointer;padding:4px 6px;line-height:1;opacity:0.5;" aria-label="Notificaciones">🔔</button>
         <button onclick="logout()" class="btn btn-ghost btn-sm" style="font-size:12px;padding:7px 12px;">Salir</button>
       </div>
     </div>
@@ -438,18 +439,16 @@
 
 <div id="toast"></div>
 
-<!-- Push Permission Banner (solicitar permiso notificaciones) -->
-<div id="notif-permission-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#0d1b2e;border-top:1px solid #2a3a54;padding:14px 16px;z-index:9000;">
-  <div style="max-width:700px;margin:0 auto;display:flex;align-items:flex-start;gap:12px;">
-    <div style="font-size:22px;flex-shrink:0;margin-top:2px;">🔔</div>
-    <div style="flex:1;">
-      <div style="font-weight:700;color:white;font-size:14px;margin-bottom:3px;">Activar notificaciones</div>
-      <div style="font-size:12px;color:rgba(255,255,255,0.55);line-height:1.4;">Te avisamos 2h antes de cada partido si aún no apostaste</div>
+<!-- Notif Modal Overlay -->
+<div id="notif-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:10000;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:#0d1b2e;border:1px solid rgba(212,168,83,0.3);border-radius:20px;padding:32px 24px;max-width:320px;width:100%;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,0.6);">
+    <div style="font-size:48px;margin-bottom:14px;line-height:1;">🔔</div>
+    <div style="font-weight:900;font-size:19px;color:white;margin-bottom:10px;letter-spacing:-0.3px;">¿Activar notificaciones?</div>
+    <div style="font-size:13px;color:rgba(255,255,255,0.55);line-height:1.6;margin-bottom:26px;">
+      Te avisamos <strong style="color:rgba(212,168,83,0.9);">2 horas</strong> y <strong style="color:rgba(212,168,83,0.9);">1 hora antes</strong> de cada partido si aún no apostaste. No te pierdas ninguna.
     </div>
-    <div style="display:flex;gap:8px;flex-shrink:0;margin-top:2px;">
-      <button onclick="enableNotifications()" class="btn btn-sm" style="background:#2563eb;color:#fff;font-size:12px;padding:6px 14px;white-space:nowrap;">Activar</button>
-      <button onclick="dismissNotifBanner()" style="background:none;border:none;color:rgba(255,255,255,0.4);font-size:20px;cursor:pointer;padding:0 4px;">✕</button>
-    </div>
+    <button onclick="enableNotifications()" style="width:100%;background:#2563eb;color:white;border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:800;cursor:pointer;margin-bottom:10px;letter-spacing:-0.2px;">⚽ Activar notificaciones</button>
+    <button onclick="dismissNotifBanner()" style="width:100%;background:none;border:none;color:rgba(255,255,255,0.35);font-size:13px;cursor:pointer;padding:8px;">Ahora no</button>
   </div>
 </div>
 
@@ -2127,28 +2126,73 @@ async function registerServiceWorker() {
   }
 }
 
+function _updateNotifBell() {
+  const bell = document.getElementById('notifBell');
+  if (!bell) return;
+  const perm = ('Notification' in window) ? Notification.permission : 'unsupported';
+  if (perm === 'granted') {
+    bell.textContent = '🔔'; bell.style.opacity = '1'; bell.title = 'Notificaciones activas — clic para desactivar';
+  } else if (perm === 'denied') {
+    bell.textContent = '🔕'; bell.style.opacity = '0.4'; bell.title = 'Notificaciones bloqueadas en el navegador';
+  } else {
+    bell.textContent = '🔔'; bell.style.opacity = '0.45'; bell.title = 'Activar notificaciones';
+  }
+}
+
+async function toggleNotifications() {
+  const perm = ('Notification' in window) ? Notification.permission : 'unsupported';
+  if (perm === 'denied') {
+    toast('🔕 Notificaciones bloqueadas — actívalas desde la configuración del navegador'); return;
+  }
+  if (perm === 'granted') {
+    // Desactivar: eliminar suscripción
+    try {
+      if (_swReg) {
+        const sub = await _swReg.pushManager.getSubscription();
+        if (sub) await sub.unsubscribe();
+      }
+      if (currentUser) await sb.from('push_subscriptions').delete().eq('user_id', currentUser.id);
+      localStorage.removeItem('notif_dismissed');
+      _updateNotifBell();
+      toast('🔕 Notificaciones desactivadas');
+    } catch(e) { toast('✗ Error al desactivar'); }
+    return;
+  }
+  // No solicitado aún — mostrar modal
+  localStorage.removeItem('notif_dismissed');
+  _showNotifModal();
+}
+
+function _showNotifModal() {
+  const modal = document.getElementById('notif-modal');
+  if (modal) { modal.style.display = 'flex'; }
+}
+
+function _hideNotifModal() {
+  const modal = document.getElementById('notif-modal');
+  if (modal) { modal.style.display = 'none'; }
+}
+
 async function initPushNotifications() {
   if (!('Notification' in window) || !('serviceWorker' in navigator)) return;
+  _updateNotifBell();
   if (Notification.permission === 'granted') {
     await _silentlyResubscribe();
     return;
   }
   if (Notification.permission === 'denied') return;
   if (localStorage.getItem('notif_dismissed') === '1') return;
-  setTimeout(() => {
-    const banner = document.getElementById('notif-permission-banner');
-    if (banner) banner.style.display = 'block';
-  }, 3000);
+  setTimeout(_showNotifModal, 3000);
 }
 
 async function enableNotifications() {
-  const banner = document.getElementById('notif-permission-banner');
+  _hideNotifModal();
   try {
     const perm = await Notification.requestPermission();
-    if (banner) banner.style.display = 'none';
-    if (perm !== 'granted') return;
+    if (perm !== 'granted') { _updateNotifBell(); return; }
     await _subscribeAndSave();
-    toast('🔔 Notificaciones activadas');
+    _updateNotifBell();
+    toast('🔔 Notificaciones activadas — te avisaremos 2h y 1h antes de cada partido');
   } catch (e) {
     console.warn('enableNotifications error:', e);
     toast('✗ No se pudo activar notificaciones');
@@ -2194,8 +2238,7 @@ async function _silentlyResubscribe() {
 
 function dismissNotifBanner() {
   localStorage.setItem('notif_dismissed', '1');
-  const banner = document.getElementById('notif-permission-banner');
-  if (banner) banner.style.display = 'none';
+  _hideNotifModal();
 }
 
 function checkBetReminder() {
