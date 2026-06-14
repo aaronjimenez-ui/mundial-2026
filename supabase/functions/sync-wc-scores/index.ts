@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const ADMIN_EMAIL = "jimenezaaron5@gmail.com";
 const ESPN_URL = "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard";
-const CRON_SECRET = Deno.env.get("CRON_SECRET") ?? "mnd26cron-be84f946f3623b9c";
+const CRON_SECRET = "mnd26cron-be84f946f3623b9c";
 
 function getMatchMinute(comp: any, state: string): string | null {
   if (state !== 'in') return null;
