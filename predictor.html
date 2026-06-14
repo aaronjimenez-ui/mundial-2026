@@ -163,7 +163,7 @@
   <div class="method-tag"><strong>MODELO:</strong> Poisson Bivariado</div>
   <div class="method-tag"><strong>CORRECCIÓN:</strong> Dixon-Coles (ρ=-0.07, calibrado WC 2014-2022)</div>
   <div class="method-tag"><strong>RATINGS:</strong> xGF/xGA por equipo + ajuste strength-of-schedule por confederación</div>
-  <div class="method-tag"><strong>BLEND:</strong> 65% xG model + 35% Elo + underdog dampening (evidencia MD1 WC 2026)</div>
+  <div class="method-tag"><strong>BLEND:</strong> 65% xG model + 35% Elo + dampening doble (underdog ×0.90 + favorito ×0.85) + draw prior ×1.35 (calibrado 8 partidos MD1)</div>
   <div class="method-tag"><strong>LOCAL:</strong> MEX +0.28 / USA +0.28 / CAN +0.18 (Pollard 2006 + calibración MD1)</div>
   <div class="method-tag"><strong>FORMA:</strong> 20% blend datos in-tournament MD1+ (Baker & McHale 2015 — umbral ≥4 partidos observados)</div>
   <div class="method-tag"><strong>🧤 GK:</strong> gkFactor 0.91–1.10 — portero élite reduce xGA efectivo (Alisson 0.91, E.Martínez 0.93, Abunada 0.95)</div>
@@ -225,10 +225,12 @@
 // Implementación: penaltyblog methodology
 // ═══════════════════════════════════════════════════
 
-const AVG = 1.38;      // Normalizador Maher = media aritmética TEAM_STATS (garantiza xGD=0 en pool)
+const AVG = 1.22;      // Normalizador Maher calibrado WC2026 MD1 (WC promedia 1.33 goles/equipo vs 1.38 clasif)
 const DC_RHO = -0.07;  // Dixon-Coles ρ WC 2014-2022: −0.07 (vs −0.10-0.13 doméstico)
 const MAX_G = 8;        // Máximo goles por equipo en la matriz
-const ELO_SCALE = 800;  // Factor escala Elo→λ: cada 100pts ≈ +13.3% goles (Koopman & Lit 2019)
+const ELO_SCALE = 950;  // Escala Elo→λ ampliada: WC tiene más varianza que clasif (Koopman & Lit 2019)
+const DRAW_BIAS = 1.35; // Prior empate WC fase grupos: histórico ~28-30% vs ~22% modelo base
+const FAV_DAMP = 0.85;  // Favorito vs bloque bajo: ATK reducida 15% cuando Elo gap > 100 (Brasil-MAR, TUR-AUS)
 // Ventaja local diferenciada (Pollard 2006): tradición futbolística + capacidad estadio
 const HOME_BONUS_HOST = { 'México': 0.28, 'EE.UU.': 0.28, 'Canadá': 0.18 };  // USA: calibrado MD1 (+0.08), CAN: +0.02
 
@@ -248,27 +250,31 @@ function dcAdj(i, j, muA, muB) {
 }
 
 // Modelo xGF/xGA: λ_A = att_A × def_B / global_avg (Maher 1982)
-// Blend 65% xG model + 35% Elo + underdog dampening (calibrado MD1 WC 2026)
+// Blend 65% xG model + 35% Elo + dampening doble calibrado MD1 WC 2026
 function getLambdas(teamA, teamB, homeBonus) {
   const sA = getAdjustedStats(teamA);
   const sB = getAdjustedStats(teamB);
 
-  // xG model: ataque de A contra defensa de B
   let xgLA = sA[0] * sB[1] / AVG;
   let xgLB = sB[0] * sA[1] / AVG;
 
-  // Underdog ATK dampening: WC → equipos débiles juegan ultra-defensivo vs favoritos
-  // Evidencia MD1: RSA 0.18 xG real vs 0.87 modelo, PAR 0.59 vs 0.91, CZE 0.81 vs 1.07
   const eloA = ELO[teamA] || 1700, eloB = ELO[teamB] || 1700;
   const eloGap = eloA - eloB;
-  if (eloGap > 100) xgLB *= 0.85;        // equipo B débil → penalizar ATK 15%
-  else if (eloGap < -100) xgLA *= 0.85;  // equipo A débil
+
+  // Underdog dampening: equipo débil juega ultra-defensivo vs favorito
+  // Evidencia MD1: RSA 0.18 xG, PAR 0.59 xG, CZE 0.81 xG (todos < modelo)
+  if (eloGap > 100) xgLB *= 0.90;
+  else if (eloGap < -100) xgLA *= 0.90;
+
+  // Favorite dampening: favorito enfrenta bloque bajo → genera menos que su ATK base
+  // Evidencia MD1: Brasil 1.23 λ → 0.85 xG real; Turquía 1.48 λ → 0 goles
+  if (eloGap > 100) xgLA *= FAV_DAMP;
+  else if (eloGap < -100) xgLB *= FAV_DAMP;
 
   // Elo fallback (35% blend)
   const f = Math.exp((eloA - eloB) / ELO_SCALE);
   const eloLA = AVG * f, eloLB = AVG / f;
 
-  // Blend 65/35 — mayor peso xG con buena cobertura clasificatoria (Groll et al. 2018)
   const lA = 0.65 * xgLA + 0.35 * eloLA + (homeBonus || 0);
   const lB = 0.65 * xgLB + 0.35 * eloLB;
   return {
@@ -294,10 +300,14 @@ function predict(teamA, teamB, homeBonus) {
     for (let j = 0; j <= MAX_G; j++) {
       const rawP = Math.max(0, poisson(i, lA) * poisson(j, lB) * dcAdj(i, j, lA, lB)) / total;
       if (i > j) pW += rawP;
-      else if (i === j) pD += rawP;
+      else if (i === j) pD += rawP * DRAW_BIAS;  // prior empate WC grupos ~28-30% histórico
       else pL += rawP;
     }
   }
+
+  // Renormalizar tras draw bias
+  const sumP = pW + pD + pL;
+  pW /= sumP; pD /= sumP; pL /= sumP;
 
   scores.forEach(s => s.p /= total);
   scores.sort((a, b) => b.p - a.p);
