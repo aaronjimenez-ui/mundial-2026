@@ -1076,11 +1076,10 @@ function renderPozo() {
   } else {
     predsHtml = '<div style="display:flex;flex-direction:column;gap:6px;">';
     preds.forEach(p => {
-      const hit     = match.is_finished && p.pred_home === match.home_score && p.pred_away === match.away_score;
-      const correct = match.is_finished && (p.points || 0) > 0;
-      const badge   = match.is_finished ? (hit ? '🎯' : correct ? '✅' : '❌') : '';
-      const pts     = p.points || 0;
-      const ptsColor = hit ? 'var(--gold-lt)' : correct ? 'var(--green)' : 'var(--t3)';
+      const pts      = p.points || 0;
+      const hit      = match.is_finished && p.pred_home === match.home_score && p.pred_away === match.away_score;
+      const badge    = match.is_finished ? (hit ? '🎯' : pts >= 3 ? '✅' : pts >= 1 ? '〰️' : '❌') : '';
+      const ptsColor = hit ? 'var(--gold-lt)' : pts >= 3 ? 'var(--green)' : pts >= 1 ? 'var(--blue-lt)' : 'var(--t3)';
       const ptsStr  = match.is_finished
         ? '<span style="font-size:12px;font-weight:700;color:' + ptsColor + ';margin-left:8px;flex-shrink:0;">' + (pts > 0 ? '+' : '') + pts + ' pts</span>'
         : '';
