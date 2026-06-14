@@ -143,6 +143,23 @@
   ::-webkit-scrollbar-track { background: var(--bg); }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
+  /* SCORE MATRIX */
+  .matrix-toggle { display: block; width: calc(100% - 28px); margin: 0 14px 10px; background: none; border: 1px solid var(--border); color: var(--muted); border-radius: 6px; padding: 5px 12px; cursor: pointer; font-size: 10px; text-align: center; transition: all .2s; }
+  .matrix-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  .matrix-section { display: none; padding: 0 14px 12px; }
+  .matrix-section.open { display: block; }
+  .matrix-table { width: 100%; border-collapse: collapse; }
+  .matrix-table th, .matrix-table td { padding: 4px 2px; text-align: center; font-size: 9px; }
+  .matrix-table .mh { color: var(--muted); font-weight: 700; }
+  .matrix-table .col-hdr { font-size: 9px; font-weight: 700; color: #7ab3e0; }
+  .sm-cell { border-radius: 3px; cursor: default; }
+  .sm-cell.best { outline: 1px solid rgba(255,255,255,0.6); font-weight: 800; }
+  .matrix-stats { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; justify-content: center; }
+  .matrix-stat { font-size: 10px; color: var(--muted); background: var(--card2); padding: 4px 10px; border-radius: 6px; }
+  .matrix-stat strong { color: var(--text); }
+  .ms-over { color: var(--accent); }
+  .ms-btts { color: var(--orange); }
+
   @media (max-width: 600px) {
     .matches-grid { grid-template-columns: 1fr; }
     header { flex-direction: column; gap: 8px; align-items: flex-start; }
@@ -286,7 +303,10 @@ function getLambdas(teamA, teamB, homeBonus) {
 function predict(teamA, teamB, homeBonus) {
   const { lA, lB } = getLambdas(teamA, teamB, homeBonus);
   let pW = 0, pD = 0, pL = 0, total = 0;
+  let over25 = 0, btts = 0;
   const scores = [];
+  const MAT = 5; // matrix 0..5 goals per team
+  const matrix = Array.from({length: MAT+1}, () => new Array(MAT+1).fill(0));
 
   for (let i = 0; i <= MAX_G; i++) {
     for (let j = 0; j <= MAX_G; j++) {
@@ -302,6 +322,9 @@ function predict(teamA, teamB, homeBonus) {
       if (i > j) pW += rawP;
       else if (i === j) pD += rawP * DRAW_BIAS;  // prior empate WC grupos ~28-30% histórico
       else pL += rawP;
+      if (i + j >= 3) over25 += rawP;  // > 2.5 goles
+      if (i > 0 && j > 0) btts += rawP;
+      if (i <= MAT && j <= MAT) matrix[i][j] += rawP;
     }
   }
 
@@ -318,7 +341,10 @@ function predict(teamA, teamB, homeBonus) {
     pL: Math.round(pL * 100),
     top: scores.slice(0, 8),
     xGA: lA.toFixed(2),
-    xGB: lB.toFixed(2)
+    xGB: lB.toFixed(2),
+    matrix,
+    over25: Math.round(over25 * 100),
+    btts: Math.round(btts * 100)
   };
 }
 
@@ -764,6 +790,55 @@ function renderContext(home, away) {
 }
 
 // ═══════════════════════════════════════════════════
+// SCORE MATRIX
+// ═══════════════════════════════════════════════════
+
+function toggleMatrix(id) {
+  const sec = document.getElementById(id);
+  const btn = document.getElementById(id + '-btn');
+  if (!sec) return;
+  const open = sec.classList.toggle('open');
+  if (btn) btn.textContent = open ? '▲ Ocultar tabla completa' : '▼ Ver tabla de marcadores exactos';
+}
+
+function renderScoreMatrix(home, away, matrix, over25, btts) {
+  const MAT = 5;
+  let maxP = 0;
+  for (let i = 0; i <= MAT; i++)
+    for (let j = 0; j <= MAT; j++)
+      if (matrix[i][j] > maxP) maxP = matrix[i][j];
+
+  let html = '<table class="matrix-table">';
+  html += '<tr><th class="mh"></th><th class="col-hdr" colspan="' + (MAT+1) + '">' + away + ' goles →</th></tr>';
+  html += '<tr><th class="col-hdr">↓ ' + home + '</th>';
+  for (let j = 0; j <= MAT; j++) html += '<th class="mh">' + j + '</th>';
+  html += '</tr>';
+
+  for (let i = 0; i <= MAT; i++) {
+    html += '<tr><td class="col-hdr">' + i + '</td>';
+    for (let j = 0; j <= MAT; j++) {
+      const p = matrix[i][j];
+      const pct = (p * 100).toFixed(1);
+      const opacity = maxP > 0 ? Math.min(0.80, (p / maxP) * 0.80) : 0;
+      let bg;
+      if (i > j)      bg = 'rgba(0,214,143,'  + opacity.toFixed(2) + ')';
+      else if (i < j) bg = 'rgba(255,77,109,'  + opacity.toFixed(2) + ')';
+      else            bg = 'rgba(255,180,0,'   + opacity.toFixed(2) + ')';
+      const isBest = (p === maxP) ? ' best' : '';
+      html += '<td class="sm-cell' + isBest + '" style="background:' + bg + '">' + pct + '%</td>';
+    }
+    html += '</tr>';
+  }
+  html += '</table>';
+  html += '<div class="matrix-stats">'
+    + '<div class="matrix-stat ms-over"><strong>Over 2.5:</strong> ' + over25 + '%</div>'
+    + '<div class="matrix-stat ms-over"><strong>Under 2.5:</strong> ' + (100 - over25) + '%</div>'
+    + '<div class="matrix-stat ms-btts"><strong>Ambos anotan:</strong> ' + btts + '%</div>'
+    + '</div>';
+  return html;
+}
+
+// ═══════════════════════════════════════════════════
 // RENDER
 // ═══════════════════════════════════════════════════
 
@@ -814,6 +889,9 @@ function renderMatchCard(match) {
     </div>`
   ).join('');
 
+  const matrixId = 'mx-' + home.replace(/[^a-z]/gi,'') + away.replace(/[^a-z]/gi,'');
+  const matrixHtml = renderScoreMatrix(home, away, pred.matrix, pred.over25, pred.btts);
+
   const marketNote = homeBonus > 0
     ? `<div class="market-row">🏟️ Local real (+${homeBonus.toFixed(2)} xG bonus)</div>`
     : '';
@@ -855,6 +933,8 @@ function renderMatchCard(match) {
       <div class="scores-title">🎯 Marcadores más probables:</div>
       <div class="scores-grid">${topScores}</div>
     </div>
+    <button class="matrix-toggle" id="${matrixId}-btn" onclick="toggleMatrix('${matrixId}')">▼ Ver tabla de marcadores exactos</button>
+    <div class="matrix-section" id="${matrixId}">${matrixHtml}</div>
     <div class="xg-row">
       <span>λ ${home}: <strong>${pred.xGA}</strong> (atk ${statsH[0].toFixed(2)} × def ${statsA[1].toFixed(2)})</span>
       <span>λ ${away}: <strong>${pred.xGB}</strong></span>
@@ -874,6 +954,8 @@ function renderMatchCard(match) {
         <span>${away} ganaba</span>
       </div>
     </div>
+    <button class="matrix-toggle" id="${matrixId}-btn" onclick="toggleMatrix('${matrixId}')">▼ Ver tabla de marcadores exactos</button>
+    <div class="matrix-section" id="${matrixId}">${matrixHtml}</div>
     `}
     ${renderContext(home, away)}
   </div>`;
