@@ -1119,15 +1119,15 @@ function renderPozo() {
     + '<div style="font-size:10px;color:var(--t3);margin-top:2px;">' + (match.is_finished ? 'Final' : '🟢 En vivo') + '</div>'
     + '</div>'
     + '</div>'
-    + predsHtml
     + (match.is_finished && (allPreds[match.id] || []).length > 0
-      ? '<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--bd);display:flex;gap:14px;flex-wrap:wrap;">'
+      ? '<div style="margin-bottom:8px;display:flex;gap:14px;flex-wrap:wrap;">'
         + '<span style="font-size:10px;color:var(--t3);">🎯 Exacto · 5pts</span>'
         + '<span style="font-size:10px;color:var(--t3);">✅ Ganador · 3pts</span>'
         + '<span style="font-size:10px;color:var(--t3);">〰️ Empate · 1pt</span>'
         + '<span style="font-size:10px;color:var(--t3);">❌ Fallo · 0pts</span>'
         + '</div>'
       : '')
+    + predsHtml
     + '</div>';
 
   /* Auto-refresh si hay partidos en curso */
