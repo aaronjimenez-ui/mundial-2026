@@ -893,6 +893,30 @@ function buildMatchCard(m) {
         : `<span style="font-size:12px;color:var(--t3);">No apostaste</span>`}
       ${predBadge}
     </div>`;
+    const _mPreds = (allPreds[m.id] || []).slice().sort((a, b) => (b.points || 0) - (a.points || 0));
+    if (_mPreds.length > 0) {
+      const _rows = _mPreds.map(ap => {
+        const isMe2 = ap.user_id === currentUser?.id;
+        const pts = ap.points || 0;
+        const ptsBadge = pts >= 5
+          ? '<span class="badge badge-exact">+' + pts + '</span>'
+          : pts >= 3
+          ? '<span class="badge badge-win">+' + pts + '</span>'
+          : pts >= 1
+          ? '<span class="badge" style="background:rgba(74,144,217,0.12);color:var(--blue-lt);border:1px solid rgba(74,144,217,0.3);">+' + pts + '</span>'
+          : '<span class="badge badge-miss">0 pts</span>';
+        const tuBadge = isMe2 ? ' <span style="font-size:9px;background:rgba(74,144,217,0.15);color:var(--blue);border-radius:4px;padding:1px 5px;font-weight:700;">TÚ</span>' : '';
+        return '<div style="display:flex;align-items:center;gap:8px;padding:3px 0;border-bottom:1px solid var(--bd);">'
+          + '<span style="flex:1;font-size:12px;color:' + (isMe2 ? 'var(--tx)' : 'var(--t2)') + ';overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:' + (isMe2 ? '700' : '400') + ';">' + esc(ap.display_name) + tuBadge + '</span>'
+          + '<span style="font-family:var(--mono);font-size:13px;font-weight:700;color:var(--t2);flex-shrink:0;">' + ap.pred_home + ':' + ap.pred_away + '</span>'
+          + ptsBadge
+          + '</div>';
+      }).join('');
+      predArea += '<div style="margin-top:10px;">'
+        + '<div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.8px;color:var(--t3);margin-bottom:5px;">Apuestas del grupo</div>'
+        + _rows
+        + '</div>';
+    }
   } else if (lock.locked) {
     predArea += `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
       <span style="font-size:11px;color:var(--t3);">🔒 Apuestas cerradas</span>
