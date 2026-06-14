@@ -653,7 +653,7 @@ async function loadAll(onProgress) {
 
     // leaderboard
     const uid = p.user_id;
-    if (!board[uid]) board[uid] = { uid, name: p.display_name || 'Sin nombre', total: 0, exact: 0, correct: 0, played: 0, hasLive: false };
+    if (!board[uid]) board[uid] = { uid, name: p.display_name || 'Sin nombre', total: 0, exact: 0, correct: 0, failed: 0, played: 0, hasLive: false };
     if (p.display_name) board[uid].name = p.display_name;
     const m = matchMap.get(p.match_id);
     if (m && m.is_finished) {
@@ -661,6 +661,7 @@ async function loadAll(onProgress) {
       board[uid].played++;
       if (p.pred_home === m.home_score && p.pred_away === m.away_score) board[uid].exact++;
       else if ((p.points || 0) > 0) board[uid].correct++;
+      else board[uid].failed++;
     } else if (m && !m.is_finished && getLock(m).type === 'live' && m.home_score !== null && m.away_score !== null) {
       board[uid].total += calcPointsLive(p.pred_home, p.pred_away, m.home_score, m.away_score, m.is_double_points);
       board[uid].hasLive = true;
@@ -679,7 +680,7 @@ function rebuildLeaderboard() {
   const board = {};
   Object.values(allPreds).flat().forEach(p => {
     const uid = p.user_id;
-    if (!board[uid]) board[uid] = { uid, name: p.display_name || 'Sin nombre', total: 0, exact: 0, correct: 0, played: 0, hasLive: false };
+    if (!board[uid]) board[uid] = { uid, name: p.display_name || 'Sin nombre', total: 0, exact: 0, correct: 0, failed: 0, played: 0, hasLive: false };
     if (p.display_name) board[uid].name = p.display_name;
     const m = matchMap.get(p.match_id);
     if (m && m.is_finished) {
@@ -687,6 +688,7 @@ function rebuildLeaderboard() {
       board[uid].played++;
       if (p.pred_home === m.home_score && p.pred_away === m.away_score) board[uid].exact++;
       else if ((p.points || 0) > 0) board[uid].correct++;
+      else board[uid].failed++;
     } else if (m && !m.is_finished && getLock(m).type === 'live' && m.home_score !== null && m.away_score !== null) {
       board[uid].total += calcPointsLive(p.pred_home, p.pred_away, m.home_score, m.away_score, m.is_double_points);
       board[uid].hasLive = true;
@@ -1275,7 +1277,7 @@ function renderLeaderboard() {
             ${esc(p.name)}
             ${isMe ? `<span style="font-size:9px;background:rgba(74,144,217,0.15);color:var(--blue);border-radius:4px;padding:2px 6px;margin-left:6px;font-weight:700;">TÚ</span>` : ''}
           </div>
-          ${(p.played || 0) > 0 || p.hasLive ? `<div style="font-size:11px;color:var(--t3);margin-top:3px;">🎯 ${p.exact || 0} exactos &nbsp;·&nbsp; ✅ ${p.correct || 0} aciertos &nbsp;·&nbsp; ${p.played} apostados${p.hasLive ? ' &nbsp;·&nbsp; <span style="color:var(--green);">⚽ en vivo</span>' : ''}</div>` : ''}
+          ${(p.played || 0) > 0 || p.hasLive ? `<div style="font-size:11px;color:var(--t3);margin-top:3px;">🎯 ${p.exact || 0} exactos &nbsp;·&nbsp; ✅ ${p.correct || 0} aciertos &nbsp;·&nbsp; ❌ ${p.failed || 0} errores &nbsp;·&nbsp; ${p.played} apostados${p.hasLive ? ' &nbsp;·&nbsp; <span style="color:var(--green);">⚽ en vivo</span>' : ''}</div>` : ''}
         </div>
         <div style="text-align:right;flex-shrink:0;">
           <div style="font-family:var(--mono);font-size:${top3?'26':'20'}px;font-weight:700;color:${ptColor};line-height:1;">${p.total}${p.hasLive ? '<span style="font-size:9px;color:var(--green);margin-left:2px;">~</span>' : ''}</div>
