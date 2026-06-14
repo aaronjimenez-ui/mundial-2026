@@ -556,7 +556,7 @@ function calcPointsLive(predHome, predAway, realHome, realAway, isDouble) {
 }
 
 function getLock(m) {
-  const LOCK_MS = 60 * 60 * 1000; // cierre 1h antes del partido (bases oficiales)
+  const LOCK_MS = 30 * 60 * 1000; // cierre 30min antes del partido
   if (m.is_finished) return { locked: true, type: 'finished', label: 'Finalizado' };
   const diff = new Date(m.match_date) - Date.now();
   if (diff <= 0)      return { locked: true, type: 'live',    label: 'En curso' };
@@ -1985,7 +1985,7 @@ function renderRules() {
       <div style="display:flex;flex-direction:column;gap:10px;">
         ${[
           ['1','Ingresa tus predicciones','En la pestaña <strong style="color:var(--tx);">Partidos</strong>, busca los partidos abiertos e ingresa el marcador que crees que va a salir. Puedes modificarla hasta que cierren las apuestas.'],
-          ['2','Cierre de apuestas','Las apuestas se cierran <strong style="color:var(--coral);">1 hora antes del inicio</strong>. Puedes cambiar tu predicción hasta ese momento.'],
+          ['2','Cierre de apuestas','Las apuestas se cierran <strong style="color:var(--coral);">30 minutos antes del inicio</strong>. Puedes cambiar tu predicción hasta ese momento.'],
           ['3','Resultados y puntos','Una vez finalizado el partido, el administrador ingresa el resultado final y los puntos se calculan automáticamente. Revisa la <strong style="color:var(--tx);">Tabla</strong> para ver tu posición.'],
         ].map(([num, title, desc]) => `
           <div style="display:flex;gap:12px;align-items:flex-start;">
