@@ -14,9 +14,10 @@ jobs:
     steps:
       - name: Sync scores from ESPN
         run: |
+          ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9rcXdnc2pob3NmY2RwdXRweGx3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNzI2MTcsImV4cCI6MjA5MDY0ODYxN30.pZGeFbydGY6ilUhwNX77ax5HEmed0gSBUIoNOvW1kPE"
           response=$(curl -s -o /tmp/resp.json -w "%{http_code}" \
             -X POST \
-            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Authorization: Bearer $ANON_KEY" \
             -H "Content-Type: application/json" \
             "https://okqwgsjhosfcdputpxlw.supabase.co/functions/v1/sync-wc-scores")
           echo "HTTP status: $response"
