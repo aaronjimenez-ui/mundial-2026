@@ -406,7 +406,7 @@ function logout() {
 /* ── Data ── */
 async function loadAll() {
   await Promise.all([loadMatches(), loadUserPreds()]);
-  await Promise.all([loadLeaderboard(), loadPayments(), loadAllPreds()]);
+  await Promise.all([loadAllPredsAndLeaderboard(), loadPayments()]);
 }
 
 async function loadMatches() {
@@ -421,29 +421,17 @@ async function loadUserPreds() {
   (data || []).forEach(p => { userPreds[p.match_id] = p; });
 }
 
-async function loadAllPreds() {
+async function loadAllPredsAndLeaderboard() {
   const { data } = await sb.from('mundial_predictions').select('match_id, user_id, display_name, pred_home, pred_away, points');
   allPreds = {};
+  const board = {};
   (data || []).forEach(p => {
     if (!allPreds[p.match_id]) allPreds[p.match_id] = [];
     allPreds[p.match_id].push(p);
-  });
-}
-
-async function loadPayments() {
-  const { data } = await sb.from('mundial_payments').select('*').order('display_name', { ascending: true });
-  payments = data || [];
-}
-
-async function loadLeaderboard() {
-  const { data } = await sb.from('mundial_predictions')
-    .select('user_id, display_name, points, pred_home, pred_away, match_id');
-  const board = {};
-  (data || []).forEach(p => {
     const uid = p.user_id;
     if (!board[uid]) board[uid] = { uid, name: p.display_name || 'Sin nombre', total: 0, exact: 0, correct: 0, played: 0 };
     board[uid].total += (p.points || 0);
-    if (p.display_name) board[uid].name = p.display_name; // usa el nombre más reciente
+    if (p.display_name) board[uid].name = p.display_name;
     const m = matches.find(x => x.id === p.match_id);
     if (m && m.is_finished) {
       board[uid].played = (board[uid].played || 0) + 1;
@@ -456,10 +444,16 @@ async function loadLeaderboard() {
   });
   leaderboard = Object.values(board).sort((a, b) => {
     if (b.total !== a.total) return b.total - a.total;
-    return (b.exact || 0) - (a.exact || 0); // desempate: más exactos primero
+    return (b.exact || 0) - (a.exact || 0);
   });
   updateHeaderPts();
 }
+
+async function loadPayments() {
+  const { data } = await sb.from('mundial_payments').select('*').order('display_name', { ascending: true });
+  payments = data || [];
+}
+
 
 function getMyDisplayName() {
   if (!currentUser) return '';
@@ -773,7 +767,7 @@ async function savePred(matchId) {
 
   toast('✓ Apuesta guardada');
   await loadUserPreds();
-  await loadLeaderboard();
+  await loadAllPredsAndLeaderboard();
   renderMatches();
 }
 
@@ -888,7 +882,7 @@ function renderPozo() {
   const liveNow = started.filter(m => !m.is_finished);
   if (liveNow.length > 0 && !_apuestasInterval) {
     _apuestasInterval = setInterval(async () => {
-      await loadAllPreds();
+      await loadAllPredsAndLeaderboard();
       if (activeTab === 'pozo') renderPozo();
     }, 60000);
   }
@@ -1606,7 +1600,7 @@ async function bootApp() {
   try {
     await Promise.race([
       loadAll(),
-      new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 8000))
+      new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 15000))
     ]);
     render();
   } catch (e) {
