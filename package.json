@@ -1,0 +1,11 @@
+{
+  "name": "mundial-2026",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "node build.js"
+  },
+  "devDependencies": {
+    "web-push": "^3.6.7"
+  }
+}

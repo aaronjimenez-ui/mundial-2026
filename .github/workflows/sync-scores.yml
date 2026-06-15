@@ -1,0 +1,27 @@
+name: Sync WC Scores
+
+on:
+  schedule:
+    # Cada 5 minutos durante el torneo (Jun 11 - Jul 15, 2026)
+    # Nota: GitHub cron mínimo es cada 5 min, puede tardar hasta 10 min en dispararse
+    - cron: '*/5 * * * *'
+  workflow_dispatch: # permite correr manualmente desde GitHub UI
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Sync scores from ESPN
+        run: |
+          ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9rcXdnc2pob3NmY2RwdXRweGx3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNzI2MTcsImV4cCI6MjA5MDY0ODYxN30.pZGeFbydGY6ilUhwNX77ax5HEmed0gSBUIoNOvW1kPE"
+          response=$(curl -s -o /tmp/resp.json -w "%{http_code}" \
+            -X POST \
+            -H "Authorization: Bearer $ANON_KEY" \
+            -H "Content-Type: application/json" \
+            "https://okqwgsjhosfcdputpxlw.supabase.co/functions/v1/sync-wc-scores")
+          echo "HTTP status: $response"
+          cat /tmp/resp.json
+          if [ "$response" != "200" ]; then
+            echo "::warning::Sync returned HTTP $response"
+          fi

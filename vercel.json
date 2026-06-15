@@ -1,12 +1,27 @@
 {
+  "buildCommand": "node build.js",
+  "outputDirectory": ".",
   "headers": [
     {
       "source": "/",
-      "headers": [{ "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" }]
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate, s-maxage=0" },
+        { "key": "Pragma", "value": "no-cache" }
+      ]
     },
     {
       "source": "/index.html",
-      "headers": [{ "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" }]
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate, s-maxage=0" },
+        { "key": "Pragma", "value": "no-cache" }
+      ]
+    },
+    {
+      "source": "/sw.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" },
+        { "key": "Service-Worker-Allowed", "value": "/" }
+      ]
     }
   ]
 }

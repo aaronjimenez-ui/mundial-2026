@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚽ Mundial 2026 — Predictor Matemático</title>
+<style>
+  :root {
+    --bg: #07101f;
+    --card: #0d1b2e;
+    --card2: #112038;
+    --border: #1a3050;
+    --accent: #00c9ff;
+    --green: #00d68f;
+    --orange: #ffb400;
+    --red: #ff4d6d;
+    --text: #dde5f0;
+    --muted: #6a7d99;
+    --played: #1a2d1a;
+    --today: #1a2010;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; font-size: 14px; }
+
+  /* HEADER */
+  header { background: linear-gradient(135deg, #071628 0%, #0a2040 50%, #071628 100%); border-bottom: 1px solid var(--border); padding: 20px 24px; display: flex; align-items: center; justify-content: space-between; }
+  header h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: 1px; color: #fff; }
+  header h1 span { color: var(--accent); }
+  .header-meta { font-size: 11px; color: var(--muted); text-align: right; line-height: 1.6; }
+
+  /* METHODOLOGY BANNER */
+  .method-bar { background: var(--card2); border-bottom: 1px solid var(--border); padding: 10px 24px; display: flex; gap: 24px; flex-wrap: wrap; }
+  .method-tag { font-size: 11px; color: var(--muted); }
+  .method-tag strong { color: var(--accent); font-size: 11px; }
+
+  /* TABS */
+  .tabs-wrapper { background: var(--card); border-bottom: 2px solid var(--border); padding: 0 16px; display: flex; gap: 2px; overflow-x: auto; }
+  .tab { padding: 12px 18px; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--muted); border-bottom: 2px solid transparent; white-space: nowrap; transition: all .2s; letter-spacing: .5px; }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* GROUP PANEL */
+  .group-panel { display: none; padding: 20px 20px; }
+  .group-panel.active { display: block; }
+  .group-header { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+  .group-header h2 { font-size: 1.2rem; color: #fff; }
+  .group-teams { display: flex; gap: 8px; flex-wrap: wrap; }
+  .team-chip { background: var(--card2); border: 1px solid var(--border); border-radius: 20px; padding: 3px 10px; font-size: 11px; color: var(--muted); }
+
+  /* MATCHES GRID */
+  .matches-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 16px; }
+
+  /* MATCH CARD */
+  .match-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; transition: border-color .2s; }
+  .match-card:hover { border-color: #2a5080; }
+  .match-card.played { border-color: #1e4030; background: var(--played); }
+  .match-card.today { border-color: #2a4020; background: var(--today); }
+
+  /* CARD HEADER */
+  .card-header { padding: 10px 14px 8px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); }
+  .matchday-label { font-size: 10px; color: var(--muted); letter-spacing: .5px; text-transform: uppercase; }
+  .status-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; text-transform: uppercase; }
+  .status-badge.played { background: #0d3020; color: #00d68f; }
+  .status-badge.today { background: #1a2d10; color: #aadd44; }
+  .status-badge.upcoming { background: #0d1e30; color: var(--muted); }
+
+  /* TEAMS ROW */
+  .teams-row { padding: 14px 14px 8px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .team { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1; }
+  .team-flag { font-size: 2rem; line-height: 1; }
+  .team-name { font-size: 11px; font-weight: 600; text-align: center; color: var(--text); letter-spacing: .3px; }
+  .team-elo { font-size: 9px; color: var(--muted); }
+  .vs-divider { font-size: 18px; font-weight: 700; color: var(--muted); padding: 0 8px; }
+  .result-score { font-size: 24px; font-weight: 800; color: #fff; padding: 0 12px; text-align: center; }
+  .result-score small { display: block; font-size: 9px; color: var(--green); font-weight: 400; }
+
+  /* PROBABILITY BARS */
+  .probs-section { padding: 0 14px 10px; }
+  .probs-label { font-size: 10px; color: var(--muted); margin-bottom: 5px; }
+  .probs-bar { display: flex; height: 22px; border-radius: 6px; overflow: hidden; gap: 1px; }
+  .bar-win { background: var(--green); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #fff; min-width: 24px; transition: width .5s; }
+  .bar-draw { background: var(--orange); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #fff; min-width: 24px; }
+  .bar-loss { background: var(--red); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #fff; min-width: 24px; }
+  .probs-labels { display: flex; justify-content: space-between; margin-top: 3px; font-size: 9px; color: var(--muted); }
+
+  /* SCORELINES */
+  .scores-section { padding: 0 14px 12px; }
+  .scores-title { font-size: 10px; color: var(--muted); margin-bottom: 6px; }
+  .scores-grid { display: flex; flex-wrap: wrap; gap: 4px; }
+  .score-chip { background: var(--card2); border: 1px solid var(--border); border-radius: 6px; padding: 3px 8px; font-size: 10px; display: flex; flex-direction: column; align-items: center; gap: 1px; min-width: 44px; }
+  .score-chip.top { border-color: #2a5070; background: #0f2540; }
+  .score-chip .sc { font-weight: 700; color: var(--text); font-size: 11px; }
+  .score-chip .sp { color: var(--muted); font-size: 9px; }
+
+  /* XG ROW */
+  .xg-row { padding: 4px 14px 10px; display: flex; justify-content: space-between; font-size: 9px; color: var(--muted); }
+  .xg-row span { background: var(--card2); padding: 2px 6px; border-radius: 4px; }
+
+  /* MARKET ODDS NOTE */
+  .market-row { padding: 0 14px 8px; font-size: 9px; color: var(--muted); }
+
+  /* STANDINGS TABLE */
+  .standings-table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 12px; }
+  .standings-table th { text-align: left; padding: 6px 10px; color: var(--muted); font-weight: 600; border-bottom: 1px solid var(--border); font-size: 10px; text-transform: uppercase; }
+  .standings-table td { padding: 6px 10px; border-bottom: 1px solid #0d1e30; }
+  .standings-table tr:last-child td { border-bottom: none; }
+  .pos-num { color: var(--muted); font-weight: 700; width: 24px; }
+  .team-cell { display: flex; align-items: center; gap: 6px; }
+  .pts { font-weight: 700; color: var(--accent); }
+  .gd.pos { color: var(--green); }
+  .gd.neg { color: var(--red); }
+
+  /* METHODOLOGY SECTION */
+  .method-section { margin: 24px 20px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px; }
+  .method-section h3 { font-size: 13px; color: var(--accent); margin-bottom: 12px; }
+  .method-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+  .method-item h4 { font-size: 11px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+  .method-item p { font-size: 10px; color: var(--muted); line-height: 1.5; }
+
+  /* POLYMARKET SECTION */
+  .market-section { margin: 0 20px 24px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+  .market-section h3 { font-size: 12px; color: var(--orange); margin-bottom: 10px; }
+  .market-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+  .market-chip { background: var(--card2); border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px; text-align: center; }
+  .market-chip .mc-team { font-size: 11px; font-weight: 700; color: var(--text); }
+  .market-chip .mc-prob { font-size: 13px; font-weight: 800; color: var(--orange); }
+
+  /* LEGEND */
+  .legend { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; padding: 8px 20px; border-top: 1px solid var(--border); }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 10px; color: var(--muted); }
+  .leg-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  /* CONTEXT BAR */
+  .ctx-bar { padding: 6px 14px 10px; border-top: 1px solid var(--border); margin-top: 4px; display: flex; flex-direction: column; gap: 3px; }
+  .ctx-row { display: flex; align-items: center; gap: 5px; font-size: 10px; color: var(--muted); flex-wrap: wrap; }
+  .ctx-dt { color: var(--text); font-weight: 600; }
+  .ctx-star { color: var(--orange); }
+  .ctx-inj { color: var(--red); }
+  .ctx-adj { color: #55aaff; font-style: italic; font-size: 9px; background: #0d1e35; padding: 1px 5px; border-radius: 4px; }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* SCORE MATRIX */
+  .matrix-toggle { display: block; width: calc(100% - 28px); margin: 0 14px 10px; background: none; border: 1px solid var(--border); color: var(--muted); border-radius: 6px; padding: 5px 12px; cursor: pointer; font-size: 10px; text-align: center; transition: all .2s; }
+  .matrix-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  .matrix-section { display: none; padding: 0 14px 12px; }
+  .matrix-section.open { display: block; }
+  .matrix-table { width: 100%; border-collapse: collapse; }
+  .matrix-table th, .matrix-table td { padding: 4px 2px; text-align: center; font-size: 9px; }
+  .matrix-table .mh { color: var(--muted); font-weight: 700; }
+  .matrix-table .col-hdr { font-size: 9px; font-weight: 700; color: #7ab3e0; }
+  .sm-cell { border-radius: 3px; cursor: default; }
+  .sm-cell.best { outline: 1px solid rgba(255,255,255,0.6); font-weight: 800; }
+  .matrix-stats { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; justify-content: center; }
+  .matrix-stat { font-size: 10px; color: var(--muted); background: var(--card2); padding: 4px 10px; border-radius: 6px; }
+  .matrix-stat strong { color: var(--text); }
+  .ms-over { color: var(--accent); }
+  .ms-btts { color: var(--orange); }
+
+  @media (max-width: 600px) {
+    .matches-grid { grid-template-columns: 1fr; }
+    header { flex-direction: column; gap: 8px; align-items: flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>⚽ MUNDIAL 2026 — <span>Predictor Matemático</span></h1>
+  <div class="header-meta">
+    Modelo v5.4: Poisson Bivariado + Dixon-Coles + Elo + GK Quality + Set-Pieces + Squad Depth + BlocBajo<br>
+    Actualizado: <span id="update-date"></span> · 72 partidos fase de grupos
+  </div>
+</header>
+
+<div class="method-bar">
+  <div class="method-tag"><strong>MODELO:</strong> Poisson Bivariado</div>
+  <div class="method-tag"><strong>CORRECCIÓN:</strong> Dixon-Coles (ρ=-0.07, calibrado WC 2014-2022)</div>
+  <div class="method-tag"><strong>RATINGS:</strong> xGF/xGA por equipo + ajuste strength-of-schedule por confederación</div>
+  <div class="method-tag"><strong>BLEND:</strong> 65% xG model + 35% Elo + dampening doble (underdog ×0.90 siempre; FAV_DAMP ×0.85 solo si underdog.blocBajo=true gap 80-300; gaps &gt;300 sin FAV_DAMP) + draw prior ×1.35 (calibrado 12 partidos MD1)</div>
+  <div class="method-tag"><strong>LOCAL:</strong> MEX +0.28 / USA +0.28 / CAN +0.18 (Pollard 2006 + calibración MD1)</div>
+  <div class="method-tag"><strong>FORMA:</strong> 20% blend datos in-tournament MD1+ (Baker & McHale 2015 — umbral ≥4 partidos observados)</div>
+  <div class="method-tag"><strong>🧤 GK:</strong> gkFactor 0.91–1.10 — portero élite reduce xGA efectivo (Alisson 0.91, E.Martínez 0.93, Abunada 0.95)</div>
+  <div class="method-tag"><strong>🎯 BP:</strong> setBonus goles/partido de balón parado sobre promedio (Argentina +0.08, Noruega +0.07, Alemania +0.04)</div>
+  <div class="method-tag"><strong>🏗️ FONDO:</strong> depthFactor modula impacto lesiones — España 1.20 amortigua, Haití 0.70 amplifica (±40% diferencia)</div>
+  <div class="method-tag"><strong>⚔️</strong> = xGF/partido creado · <strong>🛡️</strong> = xGA/partido concedido</div>
+</div>
+
+<div class="tabs-wrapper" id="tabs"></div>
+<div id="groups-content"></div>
+
+<div class="market-section">
+  <h3>🎯 MERCADOS DE PREDICCIÓN — Polymarket (winner odds, mid-Jun 2026)</h3>
+  <div class="market-grid" id="polymarket"></div>
+</div>
+
+<div class="method-section">
+  <h3>📐 METODOLOGÍA DEL MODELO</h3>
+  <div class="method-grid">
+    <div class="method-item">
+      <h4>1. Elo → Expected Goals</h4>
+      <p>λ_A = 1.30 × exp(ΔElo/950) + bonus_local<br>λ_B = 1.30 / exp(ΔElo/950)<br>Cada 100 pts Elo ≈ +10.5% goles</p>
+    </div>
+    <div class="method-item">
+      <h4>2. Distribución Poisson</h4>
+      <p>P(X=k) = e^(-λ)·λ^k / k!<br>Genera matriz de probabilidades para cada marcador 0-0 a 8-8</p>
+    </div>
+    <div class="method-item">
+      <h4>3. Corrección Dixon-Coles</h4>
+      <p>Ajuste para marcadores bajos (0-0, 1-0, 0-1, 1-1) que el modelo Poisson puro subestima. ρ = -0.07 calibrado con WC 2014-2022 (WC tiene menor correlación que ligas domésticas)</p>
+    </div>
+    <div class="method-item">
+      <h4>4. Ventaja Local</h4>
+      <p>Solo para anfitriones reales: México, Canadá, USA reciben +0.22 goles esperados adicionales. Estadio propio, hinchada propia.</p>
+    </div>
+    <div class="method-item">
+      <h4>5. Normalización</h4>
+      <p>La matriz completa se normaliza a 100% para corregir el truncado en 8 goles. Suma total P = 1.0000</p>
+    </div>
+    <div class="method-item">
+      <h4>6. Fuentes de datos</h4>
+      <p>Elo: eloratings.net (ene 2026) · Grupos: FIFA draw dic 2025 · Resultados: FIFA.com oficial · Odds: Polymarket jun 2026</p>
+    </div>
+  </div>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="leg-dot" style="background:var(--green)"></div> Victoria Local</div>
+  <div class="legend-item"><div class="leg-dot" style="background:var(--orange)"></div> Empate</div>
+  <div class="legend-item"><div class="leg-dot" style="background:var(--red)"></div> Victoria Visita</div>
+  <div class="legend-item" style="color:#00d68f">✅ Jugado</div>
+  <div class="legend-item" style="color:#aadd44">🔴 Hoy</div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════
+// MODELO MATEMÁTICO: POISSON BIVARIADO + DIXON-COLES
+// Basado en: Maher (1982), Dixon-Coles (1997)
+// Implementación: penaltyblog methodology
+// ═══════════════════════════════════════════════════
+
+const AVG = 1.22;      // Normalizador Maher calibrado WC2026 MD1 (WC promedia 1.33 goles/equipo vs 1.38 clasif)
+const DC_RHO = -0.07;  // Dixon-Coles ρ WC 2014-2022: −0.07 (vs −0.10-0.13 doméstico)
+const MAX_G = 8;        // Máximo goles por equipo en la matriz
+const ELO_SCALE = 950;  // Escala Elo→λ ampliada: WC tiene más varianza que clasif (Koopman & Lit 2019)
+const DRAW_BIAS = 1.35; // Prior empate WC fase grupos: histórico ~28-30% vs ~22% modelo base
+const FAV_DAMP = 0.85;  // Favorito vs bloque bajo: ATK reducida 15% cuando Elo gap > 100 (Brasil-MAR, TUR-AUS)
+// Ventaja local diferenciada (Pollard 2006): tradición futbolística + capacidad estadio
+const HOME_BONUS_HOST = { 'México': 0.28, 'EE.UU.': 0.28, 'Canadá': 0.18 };  // USA: calibrado MD1 (+0.08), CAN: +0.02
+
+const FACT_CACHE = [1,1,2,6,24,120,720,5040,40320,362880];
+
+function poisson(k, lam) {
+  if (k < 0 || k > 9) return 0;
+  return Math.exp(-lam) * Math.pow(lam, k) / FACT_CACHE[k];
+}
+
+function dcAdj(i, j, muA, muB) {
+  if (i===0 && j===0) return 1 - muA * muB * DC_RHO;
+  if (i===0 && j===1) return 1 + muA * DC_RHO;
+  if (i===1 && j===0) return 1 + muB * DC_RHO;
+  if (i===1 && j===1) return 1 - DC_RHO;
+  return 1.0;
+}
+
+// Modelo xGF/xGA: λ_A = att_A × def_B / global_avg (Maher 1982)
+// Blend 65% xG model + 35% Elo + dampening doble calibrado MD1 WC 2026
+function getLambdas(teamA, teamB, homeBonus) {
+  const sA = getAdjustedStats(teamA);
+  const sB = getAdjustedStats(teamB);
+
+  let xgLA = sA[0] * sB[1] / AVG;
+  let xgLB = sB[0] * sA[1] / AVG;
+
+  const eloA = ELO[teamA] || 1700, eloB = ELO[teamB] || 1700;
+  const eloGap = eloA - eloB;
+
+  // Underdog dampening: equipo débil juega ultra-defensivo vs favorito (aplica siempre gap > 100)
+  // Evidencia MD1: RSA 0.18 xG, PAR 0.59 xG, CZE 0.81 xG (todos < modelo)
+  // CALIBRADO MD1: umbral bajado de 100 a 80. NED-JPN gap=80 demostró bloque bajo estructurado.
+  if (eloGap > 79) xgLB *= 0.90;
+  else if (eloGap < -79) xgLA *= 0.90;
+
+  // Favorite dampening: solo para gaps MODERADOS (80-300) Y underdog con bloc bajo confirmado.
+  // Evidencia: TUR (gap 130, no bloc bajo) → 0 goles; BRA (gap 154, MAR bloc bajo) → 0.85 xG; JPN (gap 80, bloc bajo) → draw
+  // FIX v5.4: SWE-TUN (gap 172) — TUN NO juega bloc bajo (46% posesión, xG real 0.29 vs λ 0.89)
+  //           FAV_DAMP aplicado a SWE era incorrecto → lambda SWE subestimado 24%
+  //           Solución: solo aplicar FAV_DAMP cuando underdogProfile.blocBajo === true
+  const absgap = Math.abs(eloGap);
+  const underdogProf = eloGap > 0 ? (TEAM_PROFILE[teamB] || {}) : (TEAM_PROFILE[teamA] || {});
+  if (underdogProf.blocBajo) {
+    if (eloGap > 79 && absgap <= 300) xgLA *= FAV_DAMP;
+    else if (eloGap < -79 && absgap <= 300) xgLB *= FAV_DAMP;
+  }
+
+  // Elo fallback (35% blend)
+  const f = Math.exp((eloA - eloB) / ELO_SCALE);
+  const eloLA = AVG * f, eloLB = AVG / f;
+
+  const lA = 0.65 * xgLA + 0.35 * eloLA + (homeBonus || 0);
+  const lB = 0.65 * xgLB + 0.35 * eloLB;
+  return {
+    lA: Math.max(0.35, Math.min(3.80, lA)),
+    lB: Math.max(0.35, Math.min(3.80, lB))
+  };
+}
+
+function predict(teamA, teamB, homeBonus) {
+  const { lA, lB } = getLambdas(teamA, teamB, homeBonus);
+  let pW = 0, pD = 0, pL = 0, total = 0;
+  let over25 = 0, btts = 0;
+  const scores = [];
+  const MAT = 5; // matrix 0..5 goals per team
+  const matrix = Array.from({length: MAT+1}, () => new Array(MAT+1).fill(0));
+
+  for (let i = 0; i <= MAX_G; i++) {
+    for (let j = 0; j <= MAX_G; j++) {
+      const p = Math.max(0, poisson(i, lA) * poisson(j, lB) * dcAdj(i, j, lA, lB));
+      total += p;
+      if (i + j <= 7) scores.push({ a:i, b:j, p });
+    }
+  }
+
+  for (let i = 0; i <= MAX_G; i++) {
+    for (let j = 0; j <= MAX_G; j++) {
+      const rawP = Math.max(0, poisson(i, lA) * poisson(j, lB) * dcAdj(i, j, lA, lB)) / total;
+      if (i > j) pW += rawP;
+      else if (i === j) pD += rawP * DRAW_BIAS;  // prior empate WC grupos ~28-30% histórico
+      else pL += rawP;
+      if (i + j >= 3) over25 += rawP;  // > 2.5 goles
+      if (i > 0 && j > 0) btts += rawP;
+      if (i <= MAT && j <= MAT) matrix[i][j] += rawP;
+    }
+  }
+
+  // Renormalizar tras draw bias
+  const sumP = pW + pD + pL;
+  pW /= sumP; pD /= sumP; pL /= sumP;
+
+  scores.forEach(s => s.p /= total);
+  scores.sort((a, b) => b.p - a.p);
+
+  return {
+    pW: Math.round(pW * 100),
+    pD: Math.round(pD * 100),
+    pL: Math.round(pL * 100),
+    top: scores.slice(0, 8),
+    xGA: lA.toFixed(2),
+    xGB: lB.toFixed(2),
+    matrix,
+    over25: Math.round(over25 * 100),
+    btts: Math.round(btts * 100)
+  };
+}
+
+// ═══════════════════════════════════════════════════
+// DATOS: RATINGS ATAQUE / DEFENSA por equipo
+// [xGF_por_partido, xGA_concedidos_por_partido]
+// Fuente: campañas clasificatorias 2024-26 + UnexpectedGoals + FBref
+// Calibrado con promedio WC = 1.30 goles/equipo/partido
+// ═══════════════════════════════════════════════════
+const TEAM_STATS = {
+  // [ATK: xGF/partido,  DEF: xGA concedidos/partido]
+  'España':             [2.35, 0.65],  // domina UEFA, sólido atrás
+  'Argentina':          [2.00, 1.00],  // CONMEBOL exigente
+  'Francia':            [2.15, 0.78],
+  'Inglaterra':         [2.20, 0.80],
+  'Colombia':           [1.80, 1.00],
+  'Brasil':             [1.75, 0.90],  // 1.22 xGF qualify (ajustado nivel WC)
+  'Portugal':           [2.25, 0.78],
+  'Países Bajos':       [1.90, 0.90],
+  'Croacia':            [1.45, 0.88],
+  'Ecuador':            [1.35, 1.30],  // 18.46 xGA en clasif → defensa real débil
+  'Noruega':            [1.85, 1.05],  // Haaland en selección con soporte limitado vs club; Nations League frágil
+  'Alemania':           [2.10, 0.85],  // dominó últimos 5 clasif 16-1
+  'Suiza':              [1.65, 0.90],
+  'Uruguay':            [1.40, 0.78],  // muy defensivo, sólido atrás
+  'Turquía':            [1.55, 1.10],
+  'Japón':              [1.90, 0.72],  // xGA 0.58 inflado por rivales AFC débiles; Qatar 2022 ≈0.85 xGA vs top
+  'Senegal':            [1.40, 1.00],
+  'Bélgica':            [1.70, 1.00],
+  'México':             [1.62, 0.82],  // xGA 0.68 subestimado: Copa América 2024 concedió ≈1.1 vs rivales CONMEBOL
+  'Marruecos':          [1.45, 0.80],
+  'EE.UU.':             [1.95, 0.92],  // bayesian shrinkage: 4-1 vs PAR (17 tiros, 5 SOT, xGF≈2.4) → P(≥4|λ=1.806)=11% señal real; xGA 0.92 (72% posesión = menos exposición)
+  'Corea del Sur':      [1.85, 0.78],  // Copa Asia 2024 + WC 2022: ATK subestimado MD1 (2.15 xG real vs λ=1.38)
+  'Chequia':            [1.40, 1.10],  // +1.29 xGD vs rivales comparables
+  'Escocia':            [1.40, 1.10],  // 1.56 xGF/90 clasif, -0.9 Euro 2024
+  'Canadá':             [1.40, 1.10],
+  'Irán':               [1.25, 1.05],
+  'Australia':          [1.20, 1.20],
+  'Costa de Marfil':    [1.45, 0.85],  // xGA 0.68 inflado por rivales AFCON débiles vs nivel WC
+  'Argelia':            [1.35, 1.05],
+  'Paraguay':           [1.20, 1.28],  // xGA real clasif CONMEBOL corregido; confirmado 3-1 vs USA
+  'Bosnia-Herzegovina': [1.25, 1.10],
+  'Ghana':              [1.25, 1.20],
+  'Egipto':             [1.25, 1.10],
+  'Túnez':              [1.10, 0.68],  // 0 goles en contra clasif → muy defensivo
+  'Sudáfrica':          [1.10, 1.25],
+  'Rep. Dem. Congo':    [1.15, 1.20],
+  'Arabia Saudita':     [1.05, 1.20],
+  'Panamá':             [0.95, 1.25],
+  'Catar':              [0.90, 1.40],  // -0.55 xGD en clasif → débil
+  'Cabo Verde':         [0.95, 1.22],
+  'Irak':               [0.95, 1.22],
+  'Uzbekistán':         [0.95, 1.22],
+  'Nueva Zelanda':      [0.80, 1.40],
+  'Haití':              [0.75, 1.50],  // xGD negativo desde 2022
+  'Curazao':            [0.65, 1.55],
+  'Serbia':             [1.55, 1.00],
+  'Venezuela':          [1.15, 1.20],
+  'Perú':               [1.05, 1.22],
+  'Ucrania':            [1.50, 1.00],
+  'Polonia':            [1.40, 1.10],
+  'Austria':            [1.58, 0.90],  // Nations League A + clasif Europa; Arnautovic/Sabitzer
+  'Suecia':             [1.75, 0.95],  // Gyökeres (43 goles Sporting 24-25) + Isak/Kulusevski
+  'Jordan':             [0.85, 1.32],  // debut WC — 1er clasificado AFC via playoff
+};
+
+function getStats(team) { return getAdjustedStats(team); }
+
+// ═══════════════════════════════════════════════════
+// ELO RATINGS — solo para blend 35% + standings display
+// (eloratings.net, enero 2026)
+// ═══════════════════════════════════════════════════
+const ELO = {
+  'España': 2171, 'Argentina': 2113, 'Francia': 2063, 'Inglaterra': 2042,
+  'Colombia': 1998, 'Brasil': 1979, 'Portugal': 1976, 'Países Bajos': 1959,
+  'Croacia': 1933, 'Ecuador': 1933, 'Noruega': 1922, 'Alemania': 1910,
+  'Suiza': 1897, 'Uruguay': 1890, 'Turquía': 1880, 'Japón': 1879,
+  'Senegal': 1869, 'Bélgica': 1849, 'México': 1835, 'Marruecos': 1825,
+  'EE.UU.': 1810, 'Corea del Sur': 1790, 'Chequia': 1785, 'Escocia': 1775,
+  'Canadá': 1760, 'Irán': 1755, 'Australia': 1750, "Costa de Marfil": 1745,
+  'Argelia': 1745, 'Paraguay': 1730, 'Bosnia-Herzegovina': 1730,
+  'Ghana': 1725, 'Egipto': 1725, 'Túnez': 1700, 'Sudáfrica': 1680,
+  'Rep. Dem. Congo': 1680, 'Arabia Saudita': 1670, 'Panamá': 1650,
+  'Catar': 1640, 'Cabo Verde': 1630, 'Irak': 1625, 'Uzbekistán': 1620,
+  'Nueva Zelanda': 1605, 'Haití': 1555, 'Curazao': 1540,
+  'Serbia': 1815, 'Venezuela': 1690, 'Perú': 1720,
+  'Ucrania': 1835, 'Polonia': 1810, 'Austria': 1825,
+  'Suecia': 1872, 'Jordan': 1648
+};
+
+const FLAGS = {
+  'España':'🇪🇸','Argentina':'🇦🇷','Francia':'🇫🇷','Inglaterra':'🏴󠁧󠁢󠁥󠁮󠁧󠁿',
+  'Colombia':'🇨🇴','Brasil':'🇧🇷','Portugal':'🇵🇹','Países Bajos':'🇳🇱',
+  'Croacia':'🇭🇷','Ecuador':'🇪🇨','Noruega':'🇳🇴','Alemania':'🇩🇪',
+  'Suiza':'🇨🇭','Uruguay':'🇺🇾','Turquía':'🇹🇷','Japón':'🇯🇵',
+  'Senegal':'🇸🇳','Bélgica':'🇧🇪','México':'🇲🇽','Marruecos':'🇲🇦',
+  'EE.UU.':'🇺🇸','Corea del Sur':'🇰🇷','Chequia':'🇨🇿','Escocia':'🏴󠁧󠁢󠁳󠁣󠁴󠁿',
+  'Canadá':'🇨🇦','Irán':'🇮🇷','Australia':'🇦🇺','Costa de Marfil':'🇨🇮',
+  'Argelia':'🇩🇿','Paraguay':'🇵🇾','Bosnia-Herzegovina':'🇧🇦','Ghana':'🇬🇭',
+  'Egipto':'🇪🇬','Túnez':'🇹🇳','Sudáfrica':'🇿🇦','Rep. Dem. Congo':'🇨🇩',
+  'Arabia Saudita':'🇸🇦','Panamá':'🇵🇦','Catar':'🇶🇦','Cabo Verde':'🇨🇻',
+  'Irak':'🇮🇶','Uzbekistán':'🇺🇿','Nueva Zelanda':'🇳🇿','Haití':'🇭🇹',
+  'Curazao':'🇨🇼','Serbia':'🇷🇸','Venezuela':'🇻🇪','Perú':'🇵🇪',
+  'Ucrania':'🇺🇦','Polonia':'🇵🇱','Austria':'🇦🇹',
+  'Suecia':'🇸🇪','Jordan':'🇯🇴'
+};
+
+// Anfitriones con ventaja real de local
+const HOSTS = ['México', 'Canadá', 'EE.UU.'];
+
+// Resultados jugados (actualizar al avanzar el torneo)
+const RESULTS = {
+  'México-Sudáfrica':           { a: 2, b: 0 },  // MD1 Grupo A — Jun 11
+  'Corea del Sur-Chequia':      { a: 2, b: 1 },  // MD1 Grupo A — Jun 11
+  'Canadá-Bosnia-Herzegovina':  { a: 1, b: 1 },  // MD1 Grupo B — Jun 12
+  'EE.UU.-Paraguay':            { a: 4, b: 1 },  // MD1 Grupo D — Jun 12
+  'Catar-Suiza':                { a: 1, b: 1 },  // MD1 Grupo B — Jun 13 | Khoukhi 90+4 cabezazo; Suiza dominó (26 tiros, 3.24 xG)
+  'Brasil-Marruecos':           { a: 1, b: 1 },  // MD1 Grupo C — Jun 13 | Saibari 21' / Vinícius 32'; MAR dominó 1ra mitad (xG 1.22 vs 0.85)
+  'Haití-Escocia':              { a: 0, b: 1 },  // MD1 Grupo C — Jun 13 | McGinn 28'; HAI generó más xG (1.21 vs 1.05) sin conversión
+  'Australia-Turquía':          { a: 2, b: 0 },  // MD1 Grupo D — Jun 14 | AUS defensiva WC-level; TUR 0 remates al arco pese a xG 1.82 (xG invertido)
+  'Alemania-Curazao':           { a: 7, b: 1 },  // MD1 Grupo E — Jun 14 | goleada histórica — Elo gap 370 invalida FAV_DAMP (CUR no puede bloque bajo)
+  'Países Bajos-Japón':         { a: 2, b: 2 },  // MD1 Grupo F — Jun 14 | JAP igualó 89' (Tomiyasu); NED sin De Ligt, JAP validó ATK pese a Mitoma❌
+  'Costa de Marfil-Ecuador':    { a: 1, b: 0 },  // MD1 Grupo E — Jun 14 | Amad Diallo 90' — CIV xG 1.68 vs ECU xG 1.03; ECU 1 SOT, no convirtió; upsets Elo+188
+  'Suecia-Túnez':               { a: 5, b: 1 },  // MD1 Grupo F — Jun 14 | Ayari×2+Isak+Gyökeres+Svanberg — SWE xG 1.36 (5 goles=3.7x); TUN xG real 0.29 vs modelo 0.89 (−67% — inflación AFCON)
+};
+
+// Partidos de hoy (fecha actual)
+const TODAY_MATCHES = ['España-Cabo Verde', 'Bélgica-Egipto', 'Arabia Saudita-Uruguay', 'Irán-Nueva Zelanda'];
+
+function getResult(home, away) {
+  return RESULTS[`${home}-${away}`] || RESULTS[`${away}-${home}`] || null;
+}
+
+function isToday(home, away) {
+  const k1 = `${home}-${away}`;
+  const k2 = `${away}-${home}`;
+  return TODAY_MATCHES.includes(k1) || TODAY_MATCHES.includes(k2);
+}
+
+// ═══════════════════════════════════════════════════
+// GRUPOS Y PARTIDOS (FIFA draw, dic 2025)
+// Formato: [equipo1, equipo2, equipo3, equipo4]
+// Partidos: round-robin 1v2,3v4 | 1v3,2v4 | 1v4,2v3
+// ═══════════════════════════════════════════════════
+const GROUPS = {
+  'A': {
+    teams: ['México','Sudáfrica','Corea del Sur','Chequia'],
+    md1: 'Jun 11', md2: 'Jun 15', md3: 'Jun 23'
+  },
+  'B': {
+    teams: ['Canadá','Bosnia-Herzegovina','Catar','Suiza'],
+    md1: 'Jun 12-13', md2: 'Jun 18', md3: 'Jun 24'
+  },
+  'C': {
+    teams: ['Brasil','Marruecos','Haití','Escocia'],
+    md1: 'Jun 13', md2: 'Jun 19', md3: 'Jun 24'
+  },
+  'D': {
+    teams: ['EE.UU.','Paraguay','Australia','Turquía'],
+    md1: 'Jun 12-14', md2: 'Jun 19', md3: 'Jun 25'
+  },
+  'E': {
+    teams: ['Alemania','Curazao',"Costa de Marfil",'Ecuador'],
+    md1: 'Jun 14', md2: 'Jun 20', md3: 'Jun 25'
+  },
+  'F': {
+    teams: ['Países Bajos','Japón','Suecia','Túnez'],
+    md1: 'Jun 14', md2: 'Jun 20', md3: 'Jun 25'
+  },
+  'G': {
+    teams: ['Bélgica','Egipto','Irán','Nueva Zelanda'],
+    md1: 'Jun 15', md2: 'Jun 20', md3: 'Jun 26'
+  },
+  'H': {
+    teams: ['España','Cabo Verde','Arabia Saudita','Uruguay'],
+    md1: 'Jun 15', md2: 'Jun 21', md3: 'Jun 26'
+  },
+  'I': {
+    teams: ['Francia','Senegal','Irak','Noruega'],
+    md1: 'Jun 16', md2: 'Jun 22', md3: 'Jun 26'
+  },
+  'J': {
+    teams: ['Argentina','Argelia','Austria','Jordan'],
+    md1: 'Jun 16', md2: 'Jun 22', md3: 'Jun 27'
+  },
+  'K': {
+    teams: ['Portugal','Rep. Dem. Congo','Uzbekistán','Colombia'],
+    md1: 'Jun 17', md2: 'Jun 23', md3: 'Jun 27'
+  },
+  'L': {
+    teams: ['Inglaterra','Croacia','Ghana','Panamá'],
+    md1: 'Jun 17', md2: 'Jun 23', md3: 'Jun 27'
+  }
+};
+
+function buildMatches(teams, md1, md2, md3) {
+  const [t1, t2, t3, t4] = teams;
+  return [
+    { home: t1, away: t2, date: md1 + ' MD1' },
+    { home: t3, away: t4, date: md1 + ' MD1' },
+    { home: t1, away: t3, date: md2 + ' MD2' },
+    { home: t2, away: t4, date: md2 + ' MD2' },
+    { home: t1, away: t4, date: md3 + ' MD3 ⚠' },
+    { home: t2, away: t3, date: md3 + ' MD3 ⚠' }
+  ];
+}
+
+// ═══════════════════════════════════════════════════
+// CONTEXTO POR EQUIPO: DT, estrella, lesiones
+// ═══════════════════════════════════════════════════
+const TEAM_CONTEXT = {
+  // ── Grupos A-B (MD1 jugado) ──
+  'México':             { dt:'Javier Aguirre', star:'R.Jiménez', inj:'C.Montes 🟥 susp MD2 (CB)' },
+  'Sudáfrica':          { dt:'Hugo Broos', star:'Percy Tau', inj:'Sithole 🟥 susp MD2 + Zwane 🟥 susp MD2' },
+  'Corea del Sur':      { dt:'Hong Myung-bo', star:'Son Heung-min', inj:'Lee Gi-hyuk 🟨 riesgo susp MD2' },
+  'Chequia':            { dt:'Ivan Hasek', star:'T.Souček', inj:'V.Cerny ❌ (torneo)' },
+  'Canadá':             { dt:'Jesse Marsch', star:'A.Davies', inj:'Flores ❌ (ACL) + Bombito ❌ (tibia) · Johnston 🟨 riesgo' },
+  'Bosnia-Herzegovina': { dt:'Sergej Barbarez', star:'E.Džeko', inj:'Katic 🟨 riesgo · Džeko 🤔 (hombro)' },
+  'Catar':              { dt:'Bartolomeu Sousa', star:'Al-Haydos', inj:'' },
+  'Suiza':              { dt:'Murat Yakin', star:'G.Xhaka', inj:'' },
+  // ── Grupo C (MD1 hoy) ──
+  'Brasil':             { dt:'Carlo Ancelotti', star:'Vinícius Jr.', inj:'Rodrygo ❌ (ACL, torneo) + Estêvão ❌ (isquio) + Neymar ❌ MD1 (gemelo grado 2) + Militao ❌ (muslo) · Casemiro 🟨 + R.Ibáñez 🟨 riesgo susp MD2' },
+  'Marruecos':          { dt:'Walid Regragui', star:'Hakimi', inj:'Ezzalzouli ❌ (rodilla) + Aguerd ❌ (pubalgia) · Mazraoui 🤔 (jugó sub 80 vs BRA, MD2 incierta)' },
+  'Haití':              { dt:'Marc Collat', star:'Frantzdy Pierrot', inj:'MD1: generaron más xG que Escocia (1.21 vs 1.05) sin convertir' },
+  'Escocia':            { dt:'Steve Clarke', star:'Robertson', inj:'McKenna ❌ (gemelo, CB) + Adams 🤔 (muslo) + B.Gilmour 🤔 · ganaron eficientemente 1-0 (bloc bajo)' },
+  // ── Grupo D (MD1 jugado / por jugar) ──
+  'EE.UU.':             { dt:'M.Pochettino', star:'Pulisic', inj:'Agyemang ❌ (Aquiles) · T.Adams 🟨 riesgo susp MD2 · Pulisic 🤔 (pantorrilla, optimista MD2)' },
+  'Paraguay':           { dt:'Gustavo Alfaro', star:'M.Almirón', inj:'Enciso ❌ (Aquiles) · Almiron 🟨 + Gomez 🟨 + Alonso 🟨 riesgo susp MD2' },
+  'Australia':          { dt:'Tony Popovic', star:'M.Leckie', inj:'✅ MD1 2-0 vs TUR (Elo 1880) — defensiva física WC-level validada; 0 goles concedidos pese a xGA sup' },
+  'Turquía':            { dt:'V.Montella', star:'Arda Güler', inj:'❌ MD1 0-2 vs AUS — 0 remates al arco en 90\'; Güler contenido; ATK de clasif no se traduce a WC' },
+  // ── Grupos E-L (pre-MD1) ──
+  'Alemania':           { dt:'Julian Nagelsmann', star:'Musiala', inj:'Gnabry ❌ (aductor) + ter Stegen ❌ (muslo, torneo) · ✅ MD1 7-1 CUR — goleada histórica; Musiala + Müller desequilibrantes' },
+  'Curazao':            { dt:'Remko Bicentini', star:'Leandro Bacuna', inj:'❌ MD1 1-7 vs GER — defensivamente superados; no formaron bloque bajo efectivo vs Elo gap 370' },
+  'Costa de Marfil':    { dt:'Emerse Faé', star:'S.Haller', inj:'Haller 🤔 (fitness) + Diomande ❌ (reemplazado por Pepe)' },
+  'Ecuador':            { dt:'S.Beccacece', star:'M.Caicedo', inj:'' },
+  'Países Bajos':       { dt:'Ronald Koeman', star:'De Jong', inj:'Timber ❌ + Simons ❌ (ACL) + De Ligt ❌ (espalda) · ⚠️ MD1 2-2 JPN: defensa expuesta sin De Ligt — concedió 2 a equipo lesionado' },
+  'Japón':              { dt:'Hajime Moriyasu', star:'Kamada', inj:'Mitoma ❌ (isquio) + Minamino ❌ (ACL) + Endo 🤔 (pie) · ✅ MD1 2-2 NED: igualó 89\' pese a lesiones — intensidad WC confirmada' },
+  'Suecia':             { dt:'Jon Dahl Tomasson', star:'Gyökeres', inj:'' },
+  'Túnez':              { dt:'Jalel Kadri', star:'Khazri', inj:'Hannibal Mejbri 🤔 (lesión amistoso)' },
+  'Bélgica':            { dt:'Rudi Garcia', star:'De Bruyne', inj:'Lukaku 🤔 (tobillo — <60min amistoso)' },
+  'Egipto':             { dt:'Ihab Galal', star:'M.Salah', inj:'' },
+  'Irán':               { dt:'Amir Ghalenoei', star:'Taremi', inj:'' },
+  'Nueva Zelanda':      { dt:'Darren Bazeley', star:'C.Wood', inj:'' },
+  'España':             { dt:'Luis de la Fuente', star:'Pedri', inj:'Fermín López ❌ + Yamal 🤔 (muslo, disponibilidad MD1 incierta)' },
+  'Cabo Verde':         { dt:'Pedro Brito', star:'Tavares', inj:'' },
+  'Arabia Saudita':     { dt:'Hervé Renard', star:'Al-Dawsari', inj:'' },
+  'Uruguay':            { dt:'Marcelo Bielsa', star:'Darwin Núñez', inj:'' },
+  'Francia':            { dt:'Didier Deschamps', star:'Mbappé', inj:'Mbappé 🤔 (muslo, gestión minutos) + Ekitike ❌ (Aquiles, torneo)' },
+  'Senegal':            { dt:'Aliou Cissé', star:'Sadio Mané', inj:'' },
+  'Irak':               { dt:'Jesús Casas', star:'A.Karimi', inj:'' },
+  'Noruega':            { dt:'S.Solbakken', star:'Haaland', inj:'' },
+  'Argentina':          { dt:'Lionel Scaloni', star:'Messi (39)', inj:'C.Romero 🤔 (ligamento) + Paredes/Molina/Paz/Montiel 🤔 (entrenando separado)' },
+  'Argelia':            { dt:'Djamel Belmadi', star:'Mahrez', inj:'' },
+  'Austria':            { dt:'Ralf Rangnick', star:'M.Arnautovic', inj:'Baumgartner ❌ (muslo, torneo) + Alaba 🤔 (rodilla, viaja)' },
+  'Jordan':             { dt:'Hussein Ammouta', star:'Mousa Al-Tamari', inj:'' },
+  'Portugal':           { dt:'Roberto Martínez', star:'Ronaldo (41)', inj:'' },
+  'Rep. Dem. Congo':    { dt:'Sébastien Desabre', star:'Silas', inj:'' },
+  'Uzbekistán':         { dt:'Srecko Katanec', star:'Shomurodov', inj:'' },
+  'Colombia':           { dt:'Néstor Lorenzo', star:'James Rodríguez', inj:'' },
+  'Inglaterra':         { dt:'Thomas Tuchel', star:'Kane', inj:'Saka 🤔 (Aquiles, gestión minutos) + Livramento ❌ (muslo desde abr)' },
+  'Croacia':            { dt:'Zlatko Dalić', star:'Modrić', inj:'Modrić 🤔 (pómulo, esperado fit jun 17)' },
+  'Ghana':              { dt:'Otto Addo', star:'J.Ayew', inj:'' },
+  'Panamá':             { dt:'Thomas Christiansen', star:'R.Córdoba', inj:'' },
+};
+
+function getContext(team) { return TEAM_CONTEXT[team] || null; }
+
+// ═══════════════════════════════════════════════════
+// AJUSTES DE MODELO POR LESIONES / DISPONIBILIDAD
+// atkMult < 1.0 → ataque debilitado
+// defMult > 1.0 → defensa más vulnerable (concede más)
+// Fuente: prensa deportiva + análisis cualitativo pre-torneo
+// ═══════════════════════════════════════════════════
+const TEAM_ADJUSTMENTS = {
+  // ── Grupos A-D (MD1 jugado) ──
+  'México':       { atkMult: 1.00, defMult: 1.08, note: '+8% xGA MD2 · C.Montes 🟥 suspendido MD2 (CB central)' },
+  'Sudáfrica':    { atkMult: 0.90, defMult: 1.15, note: '−10% ATK +15% xGA MD2 · Sithole 🟥 susp + Zwane 🟥 susp (ambos MD2)' },
+  'Canadá':       { atkMult: 0.94, defMult: 1.00, note: '−6% ATK · Flores ❌ (ACL) + Bombito ❌ (tibia) · Johnston 🟨 riesgo susp' },
+  'Paraguay':     { atkMult: 0.88, defMult: 1.08, note: '−12% ATK +8% xGA · Enciso ❌ (Aquiles) · 🟨 Almiron+Gomez+Alonso riesgo suspensión MD2' },
+  'EE.UU.':       { atkMult: 1.00, defMult: 1.00, note: '· T.Adams 🟨 riesgo susp MD2 · Pulisic 🤔 (pantorrilla, optimista MD2)' },
+  // ── Grupo C (MD1 hoy) ──
+  'Brasil':       { atkMult: 0.85, defMult: 1.02, note: '−15% ATK +2% xGA · Rodrygo ❌ (ACL, torneo) + Estêvão ❌ (isquio) + Neymar ❌ MD1 (gemelo grado 2) · Casemiro 🟨 + R.Ibáñez 🟨 riesgo susp MD2' },
+  'Marruecos':    { atkMult: 0.90, defMult: 1.08, note: '−10% ATK +8% xGA · Ezzalzouli ❌ (rodilla) + Aguerd ❌ (pubalgia) · Mazraoui 🤔 (jugó sub 80 vs BRA, MD2 incierta)' },
+  'Escocia':      { atkMult: 1.00, defMult: 1.08, note: '+8% xGA · McKenna ❌ (gemelo, CB titular) + Adams 🤔 (muslo) · ganaron MD1 eficientemente (1-0 vs HAI)' },
+  // ── Grupos E-L (pre-MD1) ──
+  'Países Bajos': { atkMult: 0.90, defMult: 1.18, note: '−10% ATK +18% xGA · Timber ❌ (ingle) + Simons ❌ (ACL) + De Ligt ❌ (espalda)' },
+  'Japón':        { atkMult: 0.88, defMult: 1.03, note: '−12% ATK +3% xGA · Mitoma ❌ (isquio) + Minamino ❌ (ACL) + Endo 🤔 (pie)' },
+  'Bélgica':      { atkMult: 0.88, defMult: 1.00, note: '−12% ATK · Lukaku (tobillo — <60min amistoso vs Túnez)' },
+  'Alemania':     { atkMult: 0.95, defMult: 1.05, note: '−5% ATK +5% xGA · Gnabry ❌ (aductor) + ter Stegen ❌ (muslo, torneo completo)' },
+  'España':       { atkMult: 0.97, defMult: 1.00, note: '−3% ATK · Fermín López ❌ + Yamal ✅ disponible sub (hamstring, no 90min) MD1 vs CPV' },
+  'Francia':      { atkMult: 0.94, defMult: 1.00, note: '−6% ATK · Mbappé 🤔 (muslo, gestión minutos) + Ekitike ❌ (Aquiles, torneo)' },
+  'Argentina':    { atkMult: 1.00, defMult: 1.06, note: '+6% xGA · C.Romero 🤔 (ligamento) + Paredes/Molina/Paz/Montiel 🤔 (entrenando separado)' },
+  'Croacia':      { atkMult: 0.95, defMult: 1.00, note: '−5% ATK · Modrić 🤔 (fractura pómulo abr, esperado fit jun 17)' },
+  'Inglaterra':   { atkMult: 0.97, defMult: 1.00, note: '−3% ATK · Saka 🤔 (Aquiles, gestión minutos) + Livramento ❌ (muslo desde abr)' },
+};
+
+// ═══════════════════════════════════════════════════
+// FORMA DEL TORNEO — actualizar tras cada MD
+// formMult > 1 = ataque mejor de lo esperado in-tournament
+// defMult < 1 = defensa mejor (concede menos) | > 1 = peor
+// Peso progresivo: w=0.07 MD1 → 0.14 MD2 → 0.20 MD3+ (Baker & McHale 2015 — mínimo 4 obs para 20%)
+// ═══════════════════════════════════════════════════
+const TOURNAMENT_FORM = {
+  // ── Grupo A — Jun 11 ──
+  'México':             { formMult: 1.10, defMult: 0.93, w: 0.07 },  // 2-0 vs Sudáfrica — eficiencia + solidez defensiva previa a expulsiones
+  'Sudáfrica':          { formMult: 0.85, defMult: 1.18, w: 0.07 },  // 0-2 vs México — 3 tiros en 49min, gol min 9, 2 rojas — fragilidad mental confirmada
+  'Corea del Sur':      { formMult: 1.10, defMult: 0.95, w: 0.07 },  // 2-1 vs Chequia — xG real 2.15 vs lambda 1.38, remontada, defensa sólida
+  'Chequia':            { formMult: 0.88, defMult: 1.15, w: 0.07 },  // 1-2 vs KOR — 4 tiros, posesión 38.3%, gol de long throw
+  // ── Grupo B — Jun 12-13 ──
+  'Canadá':             { formMult: 1.00, defMult: 0.98, w: 0.07 },  // 1-1 vs Bosnia — neutro ataque; defensa levemente mejor (-2%)
+  'Bosnia-Herzegovina': { formMult: 1.00, defMult: 1.00, w: 0.07 },  // 1-1 vs Canadá — neutro, gol de córner (set piece)
+  'Catar':              { formMult: 0.88, defMult: 0.85, w: 0.07 },  // 1-1 vs SUI — 7 tiros xG 0.76 (ofensiva nula); Abunada MOTM 5 saves 3.24 xG — DEF mejor de lo esperado
+  'Suiza':              { formMult: 1.08, defMult: 1.12, w: 0.07 },  // 1-1 vs QAT — 3.24 xG 26 tiros ok; conversión 0.31x (definición fallida); DEF vulnerable set piece 90+4
+  // ── Grupo C — Jun 13 ──
+  'Brasil':             { formMult: 0.90, defMult: 1.00, w: 0.07 },  // 1-1 vs MAR — xG 0.85 (más bajo favorito MD1); Alisson concedió 1 de 1.22 xG MAR — DEF en nivel modelo
+  'Marruecos':          { formMult: 1.12, defMult: 0.96, w: 0.07 },  // 1-1 vs BRA — xG 1.22 vs Elo+154, 12 tiros 45'; bloque bajo organizado vs favorito élite confirmado
+  'Haití':              { formMult: 1.05, defMult: 1.00, w: 0.07 },  // 0-1 vs Escocia — xG 1.21 vs 1.05, 15 tiros, 54% posesión post-gol | sin conversión pese a dominio
+  'Escocia':            { formMult: 0.97, defMult: 0.88, w: 0.07 },  // 1-0 vs Haití — xG 1.05 vs HAI 1.21 | McGinn 28'; defensa sólida sin McKenna (aguantó 15 tiros)
+  // ── Grupo D — Jun 12 ──
+  'EE.UU.':             { formMult: 1.18, defMult: 0.90, w: 0.07 },  // 4-1 vs Paraguay — 17 tiros, 5 SOT, 72% posesión, dominancia total
+  'Paraguay':           { formMult: 0.85, defMult: 1.20, w: 0.07 },  // 1-4 vs EE.UU. — 8 tiros 1 SOT, fragilidad defensiva real
+  // ── Grupo D completion — Jun 14 ──
+  'Australia':          { formMult: 1.22, defMult: 0.80, w: 0.07 },  // 2-0 vs Turquía — bloqueó favorito Elo-1880; defensiva WC-level validada (0 goles concedidos con xGA inf)
+  'Turquía':            { formMult: 0.68, defMult: 1.30, w: 0.07 },  // 0-2 vs Australia — 0 remates al arco pese a xG 1.82; conversión real = 0; ATK de clasif no aplica WC
+  // ── Grupo E — Jun 14 ──
+  'Alemania':           { formMult: 1.35, defMult: 0.92, w: 0.07 },  // 7-1 vs Curazao — goleada histórica; Elo gap 370 → CUR no formó bloque bajo; ATK real > lambda modelo
+  'Curazao':            { formMult: 0.80, defMult: 1.60, w: 0.07 },  // 1-7 vs Alemania — defensivamente superados; 1 gol de consolación
+  // ── Grupo F — Jun 14 ──
+  'Países Bajos':       { formMult: 0.90, defMult: 1.30, w: 0.07 },  // 2-2 vs Japón — Simons❌ De Ligt❌ expuso defensa; concedió más de lo esperado vs equipo lesionado
+  'Japón':              { formMult: 1.22, defMult: 1.02, w: 0.07 },  // 2-2 vs Países Bajos — igualó 89' pese a Mitoma❌ Minamino❌; intensidad WC y conversión validadas
+  // ── Grupo E completion — Jun 14 ──
+  'Costa de Marfil':    { formMult: 1.22, defMult: 0.92, w: 0.07 },  // 1-0 vs Ecuador — creó 1.68 xG (λ=1.29 +31%); Amad 90'; ECU 1.03 xG→0 goles | CIV sólido defensivamente
+  'Ecuador':            { formMult: 0.92, defMult: 1.08, w: 0.07 },  // 0-1 vs CIV — creó 1.03 xG ≈ modelo; 1 SOT→0 goles (eficiencia nula); def expuesta (CIV 1.68 xG concedidos)
+  // ── Grupo F completion — Jun 14 ──
+  'Suecia':             { formMult: 1.22, defMult: 0.75, w: 0.07 },  // 5-1 vs Túnez — xG real 1.36 (λ=1.09 +25%); 5 goles 3.7x conv (outlier histórico); TUN 0.29 xG → def excelente
+  'Túnez':              { formMult: 0.35, defMult: 1.52, w: 0.07 },  // 1-5 vs Suecia — xG real 0.29 vs λ=0.89 (−67%); ATK inflada por rivales AFCON débiles; def expuesta 1.36 xG
+};
+
+// ═══════════════════════════════════════════════════
+// PERFIL DE EQUIPO — Factores cualitativos avanzados
+// gkFactor  : calidad portero — < 1.0 = élite (Alisson/Martínez); > 1.0 = débil
+//             Aplicado a DEF stat: portero élite concede menos goles que su xGA predice
+// setBonus  : goles ADICIONALES/partido de balón parado sobre el promedio WC
+//             Captura especialización que subestiman los xGF de clasificatorias
+// depthFactor: profundidad plantilla — 1.0 = media WC; 1.20 = muy profunda; 0.65 = superficial
+//              Modula impacto de lesiones: effectivePenalty = rawPenalty / depthFactor
+// Fuente: WC 2018-2022 GK stats + FBref Adv. Goalkeeping + análisis cualitativo Jun 2026
+// ═══════════════════════════════════════════════════
+const TEAM_PROFILE = {
+  // ── Grupo A ──
+  'México':             { gkFactor: 1.03, setBonus: 0.03, depthFactor: 1.00, gkName: 'Raúl Rangel',         gkNote: 'promedio — Liga MX nivel, primer WC' },
+  'Sudáfrica':          { gkFactor: 1.04, setBonus: 0.01, depthFactor: 0.90, gkName: 'Ronwen Williams',      gkNote: 'promedio — Mamelodi Sundowns' },
+  'Corea del Sur':      { gkFactor: 0.97, setBonus: 0.02, depthFactor: 1.05, blocBajo: true, gkName: 'Kim Seung-gyu',        gkNote: 'sólido — save clave vs Chequia MD1' },
+  'Chequia':            { gkFactor: 0.97, setBonus: 0.01, depthFactor: 0.95, gkName: 'Matěj Kovář',          gkNote: 'sólido — Bayer Leverkusen, héroe penales clasif' },
+  // ── Grupo B ──
+  'Canadá':             { gkFactor: 1.03, setBonus: 0.02, depthFactor: 0.95, gkName: 'Maxime Crépeau',       gkNote: 'promedio — MLS nivel' },
+  'Bosnia-Herzegovina': { gkFactor: 1.03, setBonus: 0.01, depthFactor: 0.90, gkName: 'Nikola Vasilj',        gkNote: 'promedio — St. Pauli Bundesliga' },
+  'Catar':              { gkFactor: 0.93, setBonus: 0.01, depthFactor: 0.80, gkName: 'Mahmoud Abunada',       gkNote: 'muy bueno — MOTM MD1 (5 saves vs 3.24 xG SUI); ajuste conservador post-MD1' },
+  'Suiza':              { gkFactor: 0.93, setBonus: 0.03, depthFactor: 1.10, gkName: 'Gregor Kobel',          gkNote: 'élite — Dortmund, 15 CS Bundesliga 2025-26' },
+  // ── Grupo C ──
+  'Brasil':             { gkFactor: 0.91, setBonus: 0.05, depthFactor: 1.15, gkName: 'Alisson Becker',        gkNote: 'élite — Liverpool, ~87% save rate CL' },
+  'Marruecos':          { gkFactor: 0.95, setBonus: 0.04, depthFactor: 1.05, blocBajo: true, gkName: 'Yassine Bounou (Bono)', gkNote: 'muy bueno — Al-Hilal, héroe WC 2022' },
+  'Haití':              { gkFactor: 1.10, setBonus: -0.02, depthFactor: 0.70, gkName: 'Johny Placide',         gkNote: 'débil — Ligue 2, 38 años, primer WC' },
+  'Escocia':            { gkFactor: 1.02, setBonus: 0.02, depthFactor: 0.90, gkName: 'Angus Gunn',             gkNote: 'promedio — Nottingham Forest' },
+  // ── Grupo D ──
+  'EE.UU.':             { gkFactor: 1.02, setBonus: 0.03, depthFactor: 1.05, gkName: 'Matt Freese',            gkNote: 'promedio — MLS nivel, 15 starts USMNT' },
+  'Paraguay':           { gkFactor: 1.06, setBonus: 0.01, depthFactor: 0.85, gkName: 'Gatito Fernández',       gkNote: 'por debajo — Cerro Porteño, 38 años' },
+  'Australia':          { gkFactor: 1.03, setBonus: 0.01, depthFactor: 0.90, blocBajo: true, gkName: 'Mat Ryan',               gkNote: 'promedio — Levante LaLiga, 103 caps' },
+  'Turquía':            { gkFactor: 0.99, setBonus: 0.02, depthFactor: 1.00, gkName: 'Ugurcan Çakir',          gkNote: 'sólido — Galatasaray CL, confirmado titular' },
+  // ── Grupo E ──
+  'Alemania':           { gkFactor: 1.01, setBonus: 0.04, depthFactor: 1.10, gkName: 'Manuel Neuer',           gkNote: 'declive — 40 años, regresó retiro tras ter Stegen ❌' },
+  'Curazao':            { gkFactor: 1.08, setBonus: -0.02, depthFactor: 0.70, gkName: 'Eloy Room',              gkNote: 'débil — Miami FC USL, 37 años' },
+  'Costa de Marfil':    { gkFactor: 1.03, setBonus: 0.02, depthFactor: 0.95, gkName: 'Yahia Fofana',           gkNote: 'promedio — Rizespor Süper Lig, 25 años' },
+  'Ecuador':            { gkFactor: 1.02, setBonus: 0.02, depthFactor: 0.90, gkName: 'Hernán Galíndez',        gkNote: 'promedio — Huracán Argentina, 39 años' },
+  // ── Grupo F ──
+  'Países Bajos':       { gkFactor: 1.02, setBonus: 0.04, depthFactor: 1.10, gkName: 'Bart Verbruggen',        gkNote: 'promedio — Brighton; Van Dijk headers elevan bonus' },
+  'Japón':              { gkFactor: 0.98, setBonus: 0.02, depthFactor: 1.00, blocBajo: true, gkName: 'Zion Suzuki',            gkNote: 'sólido — Parma Serie A, 23 años; ratio 0.95x vs NED (2G de 2.1 xG) — ajuste menor post-MD1' },
+  'Suecia':             { gkFactor: 1.05, setBonus: 0.03, depthFactor: 0.85, gkName: 'Robin Olsen',            gkNote: 'por debajo — Malmö FF, 36; Gyökeres headers' },
+  'Túnez':              { gkFactor: 1.06, setBonus: 0.01, depthFactor: 0.80, gkName: 'Aymen Dahmen',           gkNote: 'por debajo — CS Sfaxien doméstico' },
+  // ── Grupo G ──
+  'Bélgica':            { gkFactor: 0.91, setBonus: 0.05, depthFactor: 1.10, gkName: 'Thibaut Courtois',       gkNote: 'élite — IFFHS mejor portero 2025-26, 132 saves RM' },
+  'Egipto':             { gkFactor: 1.04, setBonus: 0.04, depthFactor: 0.80, gkName: 'Mohamed El-Shenawy',    gkNote: 'promedio — Al-Ahly doméstico; Salah FKs elevan bonus' },
+  'Irán':               { gkFactor: 1.03, setBonus: 0.01, depthFactor: 0.80, blocBajo: true, gkName: 'Alireza Beiranvand',     gkNote: 'promedio — 80+ caps, inconsistente en áereo' },
+  'Nueva Zelanda':      { gkFactor: 1.07, setBonus: -0.02, depthFactor: 0.65, gkName: 'Max Crocombe',           gkNote: 'por debajo — Millwall Championship' },
+  // ── Grupo H ──
+  'España':             { gkFactor: 0.97, setBonus: 0.03, depthFactor: 1.20, gkName: 'Unai Simón',             gkNote: 'sólido — 5 CS en 6 clasif, distribución activa' },
+  'Cabo Verde':         { gkFactor: 1.06, setBonus: 0.02, depthFactor: 0.70, gkName: 'Vozinha',                gkNote: 'promedio — semiprofesional' },
+  'Arabia Saudita':     { gkFactor: 1.04, setBonus: 0.01, depthFactor: 0.75, blocBajo: true, gkName: 'Nawaf Al-Aqidi',         gkNote: 'promedio — Saudi Pro League' },
+  'Uruguay':            { gkFactor: 1.01, setBonus: 0.04, depthFactor: 0.85, blocBajo: true, gkName: 'Sergio Rochet',          gkNote: 'sólido — Internacional Brasil; Núñez headers' },
+  // ── Grupo I ──
+  'Francia':            { gkFactor: 0.94, setBonus: 0.06, depthFactor: 1.15, gkName: 'Mike Maignan',           gkNote: 'élite — líder saves Serie A 2025-26, Golden Glove fav.' },
+  'Senegal':            { gkFactor: 1.00, setBonus: 0.03, depthFactor: 0.85, gkName: 'Edouard Mendy',          gkNote: 'sólido — 34 años, 2x AFCON, pasado pico' },
+  'Irak':               { gkFactor: 1.07, setBonus: 0.01, depthFactor: 0.72, gkName: 'Jalal Hassan',           gkNote: 'promedio — 100 caps, volviendo de lesión' },
+  'Noruega':            { gkFactor: 1.03, setBonus: 0.08, depthFactor: 0.80, gkName: 'Ørjan Nyland',           gkNote: 'promedio — Sevilla backup; Haaland 1.93m headers' },
+  // ── Grupo J ──
+  'Argentina':          { gkFactor: 0.90, setBonus: 0.09, depthFactor: 1.15, gkName: 'Emiliano Martínez',      gkNote: 'élite — 3x mejor portero torneo (WC22+Copa21+Copa24)' },
+  'Argelia':            { gkFactor: 1.04, setBonus: 0.02, depthFactor: 0.80, gkName: 'Raïs M\'Bolhi',          gkNote: 'promedio — 38 años, veterano AFCON' },
+  'Austria':            { gkFactor: 1.02, setBonus: 0.03, depthFactor: 0.85, gkName: 'Patrick Pentz',          gkNote: 'sólido — Brøndby, 78.1% save%; Arnautovic headers' },
+  'Jordan':             { gkFactor: 1.06, setBonus: -0.01, depthFactor: 0.70, gkName: 'Yazeed Abu Laila',       gkNote: 'promedio — Al-Wehdat doméstico, primer WC' },
+  // ── Grupo K ──
+  'Portugal':           { gkFactor: 0.93, setBonus: 0.07, depthFactor: 1.20, gkName: 'Diogo Costa',            gkNote: 'élite — 3 penales Euro 2024, 21 CS Liga Portugal' },
+  'Rep. Dem. Congo':    { gkFactor: 1.04, setBonus: 0.01, depthFactor: 0.75, gkName: 'Matthieu Epolo',          gkNote: 'promedio — Standard Liège Bélgica' },
+  'Uzbekistán':         { gkFactor: 1.06, setBonus: 0.00, depthFactor: 0.72, gkName: 'Utkir Yusupov',          gkNote: 'promedio — liga doméstica, primer WC' },
+  'Colombia':           { gkFactor: 1.01, setBonus: 0.03, depthFactor: 0.90, gkName: 'Camilo Vargas',          gkNote: 'sólido — Atlas Liga MX, 111 saves 2025-26' },
+  // ── Grupo L ──
+  'Inglaterra':         { gkFactor: 0.98, setBonus: 0.08, depthFactor: 1.20, gkName: 'Jordan Pickford',         gkNote: 'sólido — 0 goles contra en clasif europeas; Kane/Bellingham corners' },
+  'Croacia':            { gkFactor: 0.99, setBonus: 0.03, depthFactor: 0.85, gkName: 'Dominik Livaković',       gkNote: 'sólido — héroe penales WC 2022' },
+  'Ghana':              { gkFactor: 1.06, setBonus: 0.01, depthFactor: 0.75, gkName: 'Lawrence Ati-Zigi',       gkNote: 'promedio — St. Gallen Suiza' },
+  'Panamá':             { gkFactor: 1.04, setBonus: -0.01, depthFactor: 0.75, gkName: 'Orlando Mosquera',        gkNote: 'promedio — Al-Fayha; sin exp. WC' },
+  // ── Fuera del draw WC (en TEAM_STATS histórico) ──
+  'Serbia':             { gkFactor: 1.01, setBonus: 0.03, depthFactor: 0.90, gkName: 'Predrag Rajković',        gkNote: 'sólido — Mallorca LaLiga' },
+  'Venezuela':          { gkFactor: 1.04, setBonus: 0.01, depthFactor: 0.78, gkName: 'Rafael Romo',             gkNote: 'promedio — MLS nivel' },
+  'Perú':               { gkFactor: 1.03, setBonus: 0.02, depthFactor: 0.80, gkName: 'Pedro Gallese',           gkNote: 'promedio — Orlando City MLS, 120+ caps' },
+  'Ucrania':            { gkFactor: 1.01, setBonus: 0.03, depthFactor: 0.90, gkName: 'Andriy Lunin',            gkNote: 'sólido — Real Madrid backup' },
+  'Polonia':            { gkFactor: 1.00, setBonus: 0.03, depthFactor: 0.90, gkName: 'Wojciech Szczęsny',       gkNote: 'sólido — ex-Juventus/Barcelona, 80+ caps' },
+};
+
+function getAdjustedStats(team) {
+  const base = TEAM_STATS[team] || [AVG, AVG];
+  const adj = TEAM_ADJUSTMENTS[team];
+  const form = TOURNAMENT_FORM[team];
+  const prof = TEAM_PROFILE[team] || { gkFactor: 1.00, setBonus: 0.03, depthFactor: 0.85 };
+
+  // 1. Injury/suspension adjustments modulated by squad depth
+  // Equipos profundos: injury duele MENOS / Equipos superficiales: injury duele MÁS
+  // effectiveMult = 1 + (rawMult - 1) / depthFactor
+  let atkMult = 1.0, defMult = 1.0;
+  if (adj) {
+    atkMult = 1 + (adj.atkMult - 1) / prof.depthFactor;
+    defMult = 1 + (adj.defMult - 1) / prof.depthFactor;
+  }
+  let atkBase = base[0] * atkMult;
+  let defBase = base[1] * defMult;
+
+  // 2. GK quality factor — captura calidad portero más allá del sistema defensivo
+  // DEF = xGA concedidos/partido; gkFactor < 1 → élite → baja xGA efectivo
+  const defGK = defBase * prof.gkFactor;
+
+  // 3. Set-piece specialization bonus — goles/partido sobre el promedio WC desde BP
+  // Captura especialización que subestiman las clasificatorias
+  const atkSP = atkBase + prof.setBonus;
+
+  // 4. Tournament form (peso progresivo: 7% MD1 → 14% MD2 → 20% MD3+, Baker & McHale 2015)
+  const fw = form ? (form.w !== undefined ? form.w : 0.20) : 0;
+  const atkFinal = form ? atkSP * (1 - fw + fw * form.formMult) : atkSP;
+  const defFinal = form ? defGK * (1 - fw + fw * form.defMult) : defGK;
+
+  return [+atkFinal.toFixed(3), +defFinal.toFixed(3)];
+}
+
+function renderContext(home, away) {
+  const ctxH = getContext(home), ctxA = getContext(away);
+  const adjH = TEAM_ADJUSTMENTS[home], adjA = TEAM_ADJUSTMENTS[away];
+  if (!ctxH && !ctxA && !adjH && !adjA) return '';
+  function row(team, ctx, adj) {
+    if (!ctx && !adj) return '';
+    const dtPart = ctx ? '<span class="ctx-dt">DT: ' + ctx.dt + '</span><span class="ctx-star">⭐ ' + ctx.star + '</span>' : '';
+    const injPart = ctx && ctx.inj ? '<span class="ctx-inj">🚑 ' + ctx.inj + '</span>' : '';
+    const adjPart = adj ? '<span class="ctx-adj">📊 ' + adj.note + '</span>' : '';
+    return '<div class="ctx-row"><span>' + getFlag(team) + '</span>' + dtPart + injPart + adjPart + '</div>';
+  }
+  return '<div class="ctx-bar">' + row(home, ctxH, adjH) + row(away, ctxA, adjA) + '</div>';
+}
+
+// ═══════════════════════════════════════════════════
+// SCORE MATRIX
+// ═══════════════════════════════════════════════════
+
+function toggleMatrix(id) {
+  const sec = document.getElementById(id);
+  const btn = document.getElementById(id + '-btn');
+  if (!sec) return;
+  const open = sec.classList.toggle('open');
+  if (btn) btn.textContent = open ? '▲ Ocultar tabla completa' : '▼ Ver tabla de marcadores exactos';
+}
+
+function renderScoreMatrix(home, away, matrix, over25, btts) {
+  const MAT = 5;
+  let maxP = 0;
+  for (let i = 0; i <= MAT; i++)
+    for (let j = 0; j <= MAT; j++)
+      if (matrix[i][j] > maxP) maxP = matrix[i][j];
+
+  let html = '<table class="matrix-table">';
+  html += '<tr><th class="mh"></th><th class="col-hdr" colspan="' + (MAT+1) + '">' + away + ' goles →</th></tr>';
+  html += '<tr><th class="col-hdr">↓ ' + home + '</th>';
+  for (let j = 0; j <= MAT; j++) html += '<th class="mh">' + j + '</th>';
+  html += '</tr>';
+
+  for (let i = 0; i <= MAT; i++) {
+    html += '<tr><td class="col-hdr">' + i + '</td>';
+    for (let j = 0; j <= MAT; j++) {
+      const p = matrix[i][j];
+      const pct = (p * 100).toFixed(1);
+      const opacity = maxP > 0 ? Math.min(0.80, (p / maxP) * 0.80) : 0;
+      let bg;
+      if (i > j)      bg = 'rgba(0,214,143,'  + opacity.toFixed(2) + ')';
+      else if (i < j) bg = 'rgba(255,77,109,'  + opacity.toFixed(2) + ')';
+      else            bg = 'rgba(255,180,0,'   + opacity.toFixed(2) + ')';
+      const isBest = (p === maxP) ? ' best' : '';
+      html += '<td class="sm-cell' + isBest + '" style="background:' + bg + '">' + pct + '%</td>';
+    }
+    html += '</tr>';
+  }
+  html += '</table>';
+  html += '<div class="matrix-stats">'
+    + '<div class="matrix-stat ms-over"><strong>Over 2.5:</strong> ' + over25 + '%</div>'
+    + '<div class="matrix-stat ms-over"><strong>Under 2.5:</strong> ' + (100 - over25) + '%</div>'
+    + '<div class="matrix-stat ms-btts"><strong>Ambos anotan:</strong> ' + btts + '%</div>'
+    + '</div>';
+  return html;
+}
+
+// ═══════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════
+
+function getElo(team) {
+  return ELO[team] || 1700;
+}
+
+function getFlag(team) {
+  return FLAGS[team] || '🏳️';
+}
+
+function renderMatchCard(match) {
+  const { home, away, date } = match;
+  const result = getResult(home, away);
+  const today = isToday(home, away);
+  const isPlayed = !!result;
+
+  const eloH = getElo(home);
+  const eloA = getElo(away);
+  const homeBonus = HOSTS.includes(home) ? (HOME_BONUS_HOST[home] || 0.20) : 0;
+  const pred = predict(home, away, homeBonus);
+  const statsH = getStats(home), statsA = getStats(away);
+
+  let statusBadge, cardClass;
+  if (isPlayed) {
+    statusBadge = `<span class="status-badge played">✅ Jugado</span>`;
+    cardClass = 'match-card played';
+  } else if (today) {
+    statusBadge = `<span class="status-badge today">🔴 Hoy</span>`;
+    cardClass = 'match-card today';
+  } else {
+    statusBadge = `<span class="status-badge upcoming">⏳ Próximo</span>`;
+    cardClass = 'match-card';
+  }
+
+  let centerBlock;
+  if (isPlayed) {
+    const r = result;
+    centerBlock = `<div class="result-score">${r.a} — ${r.b}<small>Resultado final</small></div>`;
+  } else {
+    centerBlock = `<div class="vs-divider">VS</div>`;
+  }
+
+  const topScores = pred.top.slice(0, 6).map((s, i) =>
+    `<div class="score-chip${i===0?' top':''}">
+      <span class="sc">${s.a}-${s.b}</span>
+      <span class="sp">${(s.p*100).toFixed(1)}%</span>
+    </div>`
+  ).join('');
+
+  const matrixId = 'mx-' + home.replace(/[^a-z]/gi,'') + away.replace(/[^a-z]/gi,'');
+  const matrixHtml = renderScoreMatrix(home, away, pred.matrix, pred.over25, pred.btts);
+
+  const marketNote = homeBonus > 0
+    ? `<div class="market-row">🏟️ Local real (+${homeBonus.toFixed(2)} xG bonus)</div>`
+    : '';
+
+  return `
+  <div class="${cardClass}">
+    <div class="card-header">
+      <span class="matchday-label">📅 ${date}</span>
+      ${statusBadge}
+    </div>
+    <div class="teams-row">
+      <div class="team">
+        <div class="team-flag">${getFlag(home)}</div>
+        <div class="team-name">${home}</div>
+        <div class="team-elo">⚔️${statsH[0].toFixed(2)} 🛡️${statsH[1].toFixed(2)}</div>
+      </div>
+      ${centerBlock}
+      <div class="team">
+        <div class="team-flag">${getFlag(away)}</div>
+        <div class="team-name">${away}</div>
+        <div class="team-elo">⚔️${statsA[0].toFixed(2)} 🛡️${statsA[1].toFixed(2)}</div>
+      </div>
+    </div>
+    ${!isPlayed ? `
+    <div class="probs-section">
+      <div class="probs-label">Probabilidades (Poisson + Dixon-Coles)</div>
+      <div class="probs-bar">
+        <div class="bar-win" style="width:${pred.pW}%">${pred.pW}%</div>
+        <div class="bar-draw" style="width:${pred.pD}%">${pred.pD}%</div>
+        <div class="bar-loss" style="width:${pred.pL}%">${pred.pL}%</div>
+      </div>
+      <div class="probs-labels">
+        <span>${home} gana</span>
+        <span>Empate</span>
+        <span>${away} gana</span>
+      </div>
+    </div>
+    <div class="scores-section">
+      <div class="scores-title">🎯 Marcadores más probables:</div>
+      <div class="scores-grid">${topScores}</div>
+    </div>
+    <button class="matrix-toggle" id="${matrixId}-btn" onclick="toggleMatrix('${matrixId}')">▼ Ver tabla de marcadores exactos</button>
+    <div class="matrix-section" id="${matrixId}">${matrixHtml}</div>
+    <div class="xg-row">
+      <span>λ ${home}: <strong>${pred.xGA}</strong> (atk ${statsH[0].toFixed(2)} × def ${statsA[1].toFixed(2)})</span>
+      <span>λ ${away}: <strong>${pred.xGB}</strong></span>
+    </div>
+    ${marketNote}
+    ` : `
+    <div class="probs-section">
+      <div class="probs-label">Predicción pre-partido (referencia)</div>
+      <div class="probs-bar">
+        <div class="bar-win" style="width:${pred.pW}%">${pred.pW}%</div>
+        <div class="bar-draw" style="width:${pred.pD}%">${pred.pD}%</div>
+        <div class="bar-loss" style="width:${pred.pL}%">${pred.pL}%</div>
+      </div>
+      <div class="probs-labels">
+        <span>${home} ganaba</span>
+        <span>Empate</span>
+        <span>${away} ganaba</span>
+      </div>
+    </div>
+    <button class="matrix-toggle" id="${matrixId}-btn" onclick="toggleMatrix('${matrixId}')">▼ Ver tabla de marcadores exactos</button>
+    <div class="matrix-section" id="${matrixId}">${matrixHtml}</div>
+    `}
+    ${renderContext(home, away)}
+  </div>`;
+}
+
+function renderStandings(groupId, teams) {
+  // Calcular puntos de partidos ya jugados
+  const pts = {}, gf = {}, gc = {};
+  teams.forEach(t => { pts[t] = 0; gf[t] = 0; gc[t] = 0; });
+
+  Object.entries(RESULTS).forEach(([key, res]) => {
+    const [h, a] = key.split('-', 2).map(k => {
+      // Find team by checking if key starts with team name
+      return teams.find(t => key.startsWith(t) || key.endsWith(t));
+    });
+    // Simple result application
+    const parts = key.split('-');
+    const homeTeam = teams.find(t => key.startsWith(t));
+    const awayTeam = teams.find(t => !key.startsWith(t) && (key.endsWith(t) || key.includes('-'+t)));
+    if (homeTeam && awayTeam) {
+      gf[homeTeam] = (gf[homeTeam]||0) + res.a;
+      gc[homeTeam] = (gc[homeTeam]||0) + res.b;
+      gf[awayTeam] = (gf[awayTeam]||0) + res.b;
+      gc[awayTeam] = (gc[awayTeam]||0) + res.a;
+      if (res.a > res.b) pts[homeTeam] = (pts[homeTeam]||0) + 3;
+      else if (res.a < res.b) pts[awayTeam] = (pts[awayTeam]||0) + 3;
+      else { pts[homeTeam] = (pts[homeTeam]||0)+1; pts[awayTeam] = (pts[awayTeam]||0)+1; }
+    }
+  });
+
+  const sorted = [...teams].sort((a, b) => {
+    const diffA = (gf[a]||0) - (gc[a]||0);
+    const diffB = (gf[b]||0) - (gc[b]||0);
+    return (pts[b]||0) - (pts[a]||0) || diffB - diffA || (gf[b]||0) - (gf[a]||0);
+  });
+
+  const rows = sorted.map((t, i) => {
+    const d = (gf[t]||0) - (gc[t]||0);
+    const gdClass = d > 0 ? 'pos' : d < 0 ? 'neg' : '';
+    return `<tr>
+      <td class="pos-num">${i+1}</td>
+      <td><div class="team-cell">${getFlag(t)} ${t}</div></td>
+      <td class="pts">${pts[t]||0}</td>
+      <td>${gf[t]||0}</td>
+      <td>${gc[t]||0}</td>
+      <td class="gd ${gdClass}">${d > 0 ? '+'+d : d}</td>
+      <td style="color:var(--muted);font-size:11px">${getElo(t)}</td>
+    </tr>`;
+  }).join('');
+
+  return `<table class="standings-table">
+    <thead><tr>
+      <th>#</th><th>Equipo</th><th>PTS</th><th>GF</th><th>GC</th><th>DG</th><th>Elo</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+function renderGroup(groupId) {
+  const g = GROUPS[groupId];
+  const matches = buildMatches(g.teams, g.md1, g.md2, g.md3);
+  const teamChips = g.teams.map(t => `<span class="team-chip">${getFlag(t)} ${t}</span>`).join('');
+  const matchCards = matches.map(renderMatchCard).join('');
+  const standings = renderStandings(groupId, g.teams);
+
+  return `
+  <div class="group-panel${groupId === 'A' ? ' active' : ''}" id="group-${groupId}">
+    <div class="group-header">
+      <h2>Grupo ${groupId}</h2>
+      <div class="group-teams">${teamChips}</div>
+    </div>
+    ${standings}
+    <div class="matches-grid">${matchCards}</div>
+  </div>`;
+}
+
+// Polymarket tournament odds
+const POLYMARKET = [
+  { team: 'España', flag: '🇪🇸', pct: '16.4' },
+  { team: 'Francia', flag: '🇫🇷', pct: '16.1' },
+  { team: 'Portugal', flag: '🇵🇹', pct: '10.8' },
+  { team: 'Inglaterra', flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', pct: '9.7' },
+  { team: 'Brasil', flag: '🇧🇷', pct: '8.4' },
+  { team: 'Argentina', flag: '🇦🇷', pct: '7.9' },
+  { team: 'Alemania', flag: '🇩🇪', pct: '5.2' },
+  { team: 'Países Bajos', flag: '🇳🇱', pct: '4.9' },
+  { team: 'Otros', flag: '🌐', pct: '20.6' }
+];
+
+// ═══════════════════════════════════════════════════
+// INICIALIZAR
+// ═══════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  // Fecha
+  document.getElementById('update-date').textContent = new Date().toLocaleDateString('es-CL', { day:'numeric', month:'long', year:'numeric' });
+
+  // Polymarket chips
+  const pmEl = document.getElementById('polymarket');
+  pmEl.innerHTML = POLYMARKET.map(p =>
+    `<div class="market-chip">
+      <div class="mc-team">${p.flag} ${p.team}</div>
+      <div class="mc-prob">${p.pct}%</div>
+    </div>`
+  ).join('');
+
+  // Tabs y paneles
+  const tabsEl = document.getElementById('tabs');
+  const contentEl = document.getElementById('groups-content');
+
+  Object.keys(GROUPS).forEach((gId, idx) => {
+    // Tab
+    const tab = document.createElement('div');
+    tab.className = 'tab' + (idx === 0 ? ' active' : '');
+    tab.textContent = `Grupo ${gId}`;
+    tab.dataset.group = gId;
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.group-panel').forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById(`group-${gId}`).classList.add('active');
+    });
+    tabsEl.appendChild(tab);
+
+    // Panel
+    contentEl.insertAdjacentHTML('beforeend', renderGroup(gId));
+  });
+});
+</script>
+</body>
+</html>
