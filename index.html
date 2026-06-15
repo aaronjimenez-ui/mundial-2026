@@ -492,6 +492,7 @@ let activeApuestasMatchId = null;
 let adminFilter = 'todos'; // 'todos' | 'pendientes'
 let _bootedForUserId = null; // evita bootApp() duplicado por múltiples eventos SIGNED_IN
 let _bootRetries = 0;
+const _BOOT_TIMEOUTS = [10000, 30000, 60000]; // intento 1: detección, 2: intermedio, 3: espera larga
 
 /* ── Flags (ISO 3166-1 alpha-2 codes → flagcdn.com) ── */
 const FLAG_CODES = {
@@ -2150,12 +2151,12 @@ async function bootApp() {
     _versionCheckInterval = setInterval(checkVersion, 60 * 1000);
   }
   try {
-    await loadAll(undefined, 10000);
+    await loadAll(undefined, _BOOT_TIMEOUTS[_bootRetries] ?? 60000);
     _bootRetries = 0;
   } catch (e) {
     console.error('loadAll error:', e);
     const isTimeout = (e.message || '').includes('Timeout');
-    if (isTimeout && _bootRetries < 1) {
+    if (isTimeout && _bootRetries < _BOOT_TIMEOUTS.length - 1) {
       _bootRetries++;
       document.getElementById('pane-matches').innerHTML =
         `<div class="empty-state">
@@ -2164,25 +2165,7 @@ async function bootApp() {
            <div class="sub">Primera carga del día — reintentando automáticamente</div>
          </div>`;
       await new Promise(r => setTimeout(r, 2000));
-      try {
-        await loadAll(undefined, 60000);
-        _bootRetries = 0;
-      } catch (e2) {
-        _bootRetries = 0;
-        document.getElementById('pane-matches').innerHTML =
-          `<div class="empty-state">
-             <div class="icon" style="color:var(--red);">⚠</div>
-             <div class="title">Servidor lento</div>
-             <div class="sub">Puede ocurrir en la primera carga del día — reintenta.<br>
-               <button class="btn btn-ghost btn-sm" onclick="bootApp()" style="margin-top:12px;">↻ Reintentar</button>
-             </div>
-           </div>`;
-        return;
-      }
-      render();
-      checkBetReminder();
-      initPushNotifications();
-      return;
+      return bootApp();
     }
     _bootRetries = 0;
     document.getElementById('pane-matches').innerHTML =
