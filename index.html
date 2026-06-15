@@ -639,7 +639,7 @@ function logout() {
 }
 
 /* ── Data ── */
-async function loadAll(onProgress) {
+async function loadAll(onProgress, timeoutMs = 10000) {
   onProgress?.(1);
   // 3 queries en paralelo. Promise.race evita cuelgue infinito si Supabase no responde.
   const [matchRes, predRes] = await Promise.race([
@@ -647,7 +647,7 @@ async function loadAll(onProgress) {
       sb.from('mundial_matches').select('*').order('match_date', { ascending: true }),
       sb.from('mundial_predictions').select('match_id, user_id, display_name, pred_home, pred_away, points'),
     ]),
-    new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout cargando datos (60s)')), 60000))
+    new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout cargando datos')), timeoutMs))
   ]);
 
   onProgress?.(2);
@@ -2150,7 +2150,7 @@ async function bootApp() {
     _versionCheckInterval = setInterval(checkVersion, 60 * 1000);
   }
   try {
-    await loadAll();
+    await loadAll(undefined, 10000);
     _bootRetries = 0;
   } catch (e) {
     console.error('loadAll error:', e);
@@ -2164,7 +2164,25 @@ async function bootApp() {
            <div class="sub">Primera carga del día — reintentando automáticamente</div>
          </div>`;
       await new Promise(r => setTimeout(r, 2000));
-      return bootApp();
+      try {
+        await loadAll(undefined, 60000);
+        _bootRetries = 0;
+      } catch (e2) {
+        _bootRetries = 0;
+        document.getElementById('pane-matches').innerHTML =
+          `<div class="empty-state">
+             <div class="icon" style="color:var(--red);">⚠</div>
+             <div class="title">Servidor lento</div>
+             <div class="sub">Puede ocurrir en la primera carga del día — reintenta.<br>
+               <button class="btn btn-ghost btn-sm" onclick="bootApp()" style="margin-top:12px;">↻ Reintentar</button>
+             </div>
+           </div>`;
+        return;
+      }
+      render();
+      checkBetReminder();
+      initPushNotifications();
+      return;
     }
     _bootRetries = 0;
     document.getElementById('pane-matches').innerHTML =
