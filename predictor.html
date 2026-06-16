@@ -171,7 +171,7 @@
 <header>
   <h1>⚽ MUNDIAL 2026 — <span>Predictor Matemático</span></h1>
   <div class="header-meta">
-    Modelo v5.4: Poisson Bivariado + Dixon-Coles + Elo + GK Quality + Set-Pieces + Squad Depth + BlocBajo<br>
+    Modelo v5.5: Poisson Bivariado + Dixon-Coles + Elo + GK Quality + Set-Pieces + Squad Depth + BlocBajo<br>
     Actualizado: <span id="update-date"></span> · 72 partidos fase de grupos
   </div>
 </header>
@@ -180,7 +180,7 @@
   <div class="method-tag"><strong>MODELO:</strong> Poisson Bivariado</div>
   <div class="method-tag"><strong>CORRECCIÓN:</strong> Dixon-Coles (ρ=-0.07, calibrado WC 2014-2022)</div>
   <div class="method-tag"><strong>RATINGS:</strong> xGF/xGA por equipo + ajuste strength-of-schedule por confederación</div>
-  <div class="method-tag"><strong>BLEND:</strong> 65% xG model + 35% Elo + dampening doble (underdog ×0.90 siempre; FAV_DAMP ×0.85 solo si underdog.blocBajo=true gap 80-300; gaps &gt;300 sin FAV_DAMP) + draw prior ×1.35 (calibrado 12 partidos MD1)</div>
+  <div class="method-tag"><strong>BLEND:</strong> 65% xG model + 35% Elo + dampening doble (underdog ×0.90 siempre; FAV_DAMP ×0.85 solo si underdog.blocBajo=true gap 80-300; gaps &gt;300 sin FAV_DAMP) + draw prior ×1.45 (8 draws de 16 partidos MD1=50% — recalibrado de ×1.35; anomalía histórica WC2026)</div>
   <div class="method-tag"><strong>LOCAL:</strong> MEX +0.28 / USA +0.28 / CAN +0.18 (Pollard 2006 + calibración MD1)</div>
   <div class="method-tag"><strong>FORMA:</strong> 20% blend datos in-tournament MD1+ (Baker & McHale 2015 — umbral ≥4 partidos observados)</div>
   <div class="method-tag"><strong>🧤 GK:</strong> gkFactor 0.91–1.10 — portero élite reduce xGA efectivo (Alisson 0.91, E.Martínez 0.93, Abunada 0.95)</div>
@@ -246,7 +246,7 @@ const AVG = 1.22;      // Normalizador Maher calibrado WC2026 MD1 (WC promedia 1
 const DC_RHO = -0.07;  // Dixon-Coles ρ WC 2014-2022: −0.07 (vs −0.10-0.13 doméstico)
 const MAX_G = 8;        // Máximo goles por equipo en la matriz
 const ELO_SCALE = 950;  // Escala Elo→λ ampliada: WC tiene más varianza que clasif (Koopman & Lit 2019)
-const DRAW_BIAS = 1.35; // Prior empate WC fase grupos: histórico ~28-30% vs ~22% modelo base
+const DRAW_BIAS = 1.45; // Prior empate WC fase grupos: 8 draws de 16 partidos MD1 (50%!) — recalibrado de 1.35; histórico ~28% pero WC2026 muestra anomalía
 const FAV_DAMP = 0.85;  // Favorito vs bloque bajo: ATK reducida 15% cuando Elo gap > 100 (Brasil-MAR, TUR-AUS)
 // Ventaja local diferenciada (Pollard 2006): tradición futbolística + capacidad estadio
 const HOME_BONUS_HOST = { 'México': 0.28, 'EE.UU.': 0.28, 'Canadá': 0.18 };  // USA: calibrado MD1 (+0.08), CAN: +0.02
@@ -477,10 +477,15 @@ const RESULTS = {
   'Países Bajos-Japón':         { a: 2, b: 2 },  // MD1 Grupo F — Jun 14 | JAP igualó 89' (Tomiyasu); NED sin De Ligt, JAP validó ATK pese a Mitoma❌
   'Costa de Marfil-Ecuador':    { a: 1, b: 0 },  // MD1 Grupo E — Jun 14 | Amad Diallo 90' — CIV xG 1.68 vs ECU xG 1.03; ECU 1 SOT, no convirtió; upsets Elo+188
   'Suecia-Túnez':               { a: 5, b: 1 },  // MD1 Grupo F — Jun 14 | Ayari×2+Isak+Gyökeres+Svanberg — SWE xG 1.36 (5 goles=3.7x); TUN xG real 0.29 vs modelo 0.89 (−67% — inflación AFCON)
+  // ── Grupo G & H — Jun 15 ──
+  'España-Cabo Verde':          { a: 0, b: 0 },  // MD1 Grupo H — Jun 15 | SHOCK MÁXIMO: 27 tiros ESP, 7 al arco, 0 goles — Vozinha (40a) MOTM; 1er WC CPV; ningún Elo gap salvó a ESP
+  'Bélgica-Egipto':             { a: 1, b: 1 },  // MD1 Grupo G — Jun 15 | EGY: Ashour 20'; BEL: OG Hany 66' (Lukaku entró sub) — Egipto lideró 46min
+  'Arabia Saudita-Uruguay':     { a: 1, b: 1 },  // MD1 Grupo H — Jun 15 | KSA: Al-Amri 41'; URU: Araújo 80' — Bielsa rescató empate en agonía; KSA sorprendió atacando
+  'Irán-Nueva Zelanda':         { a: 2, b: 2 },  // MD1 Grupo G — Jun 15 | NZL: Just 7'+54' (doblete); IRN: Rezaeian 32'+Mohebbi 64' — 4 intercambios; IRN lideró 64'-FT y no aguantó
 };
 
 // Partidos de hoy (fecha actual)
-const TODAY_MATCHES = ['España-Cabo Verde', 'Bélgica-Egipto', 'Arabia Saudita-Uruguay', 'Irán-Nueva Zelanda'];
+const TODAY_MATCHES = ['Francia-Senegal', 'Irak-Noruega', 'Argentina-Argelia', 'Austria-Jordan'];
 
 function getResult(home, away) {
   return RESULTS[`${home}-${away}`] || RESULTS[`${away}-${home}`] || null;
@@ -596,8 +601,8 @@ const TEAM_CONTEXT = {
   'Egipto':             { dt:'Ihab Galal', star:'M.Salah', inj:'' },
   'Irán':               { dt:'Amir Ghalenoei', star:'Taremi', inj:'' },
   'Nueva Zelanda':      { dt:'Darren Bazeley', star:'C.Wood', inj:'' },
-  'España':             { dt:'Luis de la Fuente', star:'Pedri', inj:'Fermín López ❌ + Yamal 🤔 (muslo, disponibilidad MD1 incierta)' },
-  'Cabo Verde':         { dt:'Pedro Brito', star:'Tavares', inj:'' },
+  'España':             { dt:'Luis de la Fuente', star:'Pedri', inj:'Fermín López ❌ (torneo) · Yamal ✅ jugó sub MD1 · 0-0 CPV pese a 27 tiros — crisis conversión' },
+  'Cabo Verde':         { dt:'Pedro Brito', star:'Vozinha', inj:'MOTM MD1: Vozinha (GK, 40a) — 7 saves vs España (27 tiros), WC debut histórico; 1er punto en historia WC' },
   'Arabia Saudita':     { dt:'Hervé Renard', star:'Al-Dawsari', inj:'' },
   'Uruguay':            { dt:'Marcelo Bielsa', star:'Darwin Núñez', inj:'' },
   'Francia':            { dt:'Didier Deschamps', star:'Mbappé', inj:'Mbappé 🤔 (muslo, gestión minutos) + Ekitike ❌ (Aquiles, torneo)' },
@@ -689,6 +694,16 @@ const TOURNAMENT_FORM = {
   // ── Grupo F completion — Jun 14 ──
   'Suecia':             { formMult: 1.22, defMult: 0.75, w: 0.07 },  // 5-1 vs Túnez — xG real 1.36 (λ=1.09 +25%); 5 goles 3.7x conv (outlier histórico); TUN 0.29 xG → def excelente
   'Túnez':              { formMult: 0.35, defMult: 1.52, w: 0.07 },  // 1-5 vs Suecia — xG real 0.29 vs λ=0.89 (−67%); ATK inflada por rivales AFCON débiles; def expuesta 1.36 xG
+  // ── Grupo G — Jun 15 ──
+  'Bélgica':            { formMult: 0.90, defMult: 1.10, w: 0.07 },  // 1-1 vs Egipto — gol vía OG Hany 66' (no propio); EGY dominó 1ra parte; ATK subestimada con Lukaku sub
+  'Egipto':             { formMult: 1.18, defMult: 0.90, w: 0.07 },  // 1-1 vs Bélgica — Ashour 20' (Salah assist?); EGY lideró 46min vs favorito; def sólida (solo OG concedido)
+  'Irán':               { formMult: 1.08, defMult: 1.15, w: 0.07 },  // 2-2 vs NZL — Rezaeian 32'+Mohebbi 64'; lideró 64'–FT pero no aguantó bloque bajo NZL; concedió doblete a Just
+  'Nueva Zelanda':      { formMult: 1.40, defMult: 1.08, w: 0.07 },  // 2-2 vs Irán — E.Just doblete 7'+54' (MAYOR sobre-rendimiento ATK WC2026 vs Elo gap); concedió 2 a IRN
+  // ── Grupo H — Jun 15 ──
+  'España':             { formMult: 0.88, defMult: 0.90, w: 0.07 },  // 0-0 vs Cabo Verde — 27 tiros 7 SOT 0 goles (NULA conversión); Yamal sub; CS positivo pero vs Elo+400 = alerta ATK
+  'Cabo Verde':         { formMult: 0.82, defMult: 0.72, w: 0.07 },  // 0-0 vs España — 6 tiros, ataque mínimo; Vozinha 40a heroico (7 saves); DEFENSA HISTÓRICA MD1 WC debut
+  'Arabia Saudita':     { formMult: 1.08, defMult: 1.05, w: 0.07 },  // 1-1 vs Uruguay — Al-Amri 41' (sorpresa ofensiva); lideró pero concedió Araújo 80'; bloque bajo sólido
+  'Uruguay':            { formMult: 0.90, defMult: 1.05, w: 0.07 },  // 1-1 vs KSA — rescató empate Araújo 80' desde abajo; ATK por debajo de lo esperado vs equipo Elo-1750
 };
 
 // ═══════════════════════════════════════════════════
@@ -739,7 +754,7 @@ const TEAM_PROFILE = {
   'Nueva Zelanda':      { gkFactor: 1.07, setBonus: -0.02, depthFactor: 0.65, gkName: 'Max Crocombe',           gkNote: 'por debajo — Millwall Championship' },
   // ── Grupo H ──
   'España':             { gkFactor: 0.97, setBonus: 0.03, depthFactor: 1.20, gkName: 'Unai Simón',             gkNote: 'sólido — 5 CS en 6 clasif, distribución activa' },
-  'Cabo Verde':         { gkFactor: 1.06, setBonus: 0.02, depthFactor: 0.70, gkName: 'Vozinha',                gkNote: 'promedio — semiprofesional' },
+  'Cabo Verde':         { gkFactor: 0.95, setBonus: 0.02, depthFactor: 0.70, blocBajo: true, gkName: 'Vozinha',                gkNote: 'ÉLITE MD1 — 40a, 7 saves vs España (27 tiros), MOTM; gkFactor revisado post-MD1' },
   'Arabia Saudita':     { gkFactor: 1.04, setBonus: 0.01, depthFactor: 0.75, blocBajo: true, gkName: 'Nawaf Al-Aqidi',         gkNote: 'promedio — Saudi Pro League' },
   'Uruguay':            { gkFactor: 1.01, setBonus: 0.04, depthFactor: 0.85, blocBajo: true, gkName: 'Sergio Rochet',          gkNote: 'sólido — Internacional Brasil; Núñez headers' },
   // ── Grupo I ──
