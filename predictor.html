@@ -171,7 +171,7 @@
 <header>
   <h1>⚽ MUNDIAL 2026 — <span>Predictor Matemático</span></h1>
   <div class="header-meta">
-    Modelo v5.5: Poisson Bivariado + Dixon-Coles + Elo + GK Quality + Set-Pieces + Squad Depth + BlocBajo<br>
+    Modelo v5.6: Poisson Bivariado + Dixon-Coles + Elo + GK Quality + Set-Pieces + Squad Depth + BlocBajo<br>
     Actualizado: <span id="update-date"></span> · 72 partidos fase de grupos
   </div>
 </header>
@@ -482,10 +482,15 @@ const RESULTS = {
   'Bélgica-Egipto':             { a: 1, b: 1 },  // MD1 Grupo G — Jun 15 | EGY: Ashour 20'; BEL: OG Hany 66' (Lukaku entró sub) — Egipto lideró 46min
   'Arabia Saudita-Uruguay':     { a: 1, b: 1 },  // MD1 Grupo H — Jun 15 | KSA: Al-Amri 41'; URU: Araújo 80' — Bielsa rescató empate en agonía; KSA sorprendió atacando
   'Irán-Nueva Zelanda':         { a: 2, b: 2 },  // MD1 Grupo G — Jun 15 | NZL: Just 7'+54' (doblete); IRN: Rezaeian 32'+Mohebbi 64' — 4 intercambios; IRN lideró 64'-FT y no aguantó
+  // ── Grupo I & J — Jun 16-17 ──
+  'Francia-Senegal':            { a: 3, b: 1 },  // MD1 Grupo I — Jun 16 | Mbappé×2 (muslo curado); FRA dominio claro; SEN: 1 gol — no resistió
+  'Irak-Noruega':               { a: 1, b: 4 },  // MD1 Grupo I — Jun 16 | Haaland gol debut WC; NOR goleó (4-1); IRQ: 1 gol consolación
+  'Argentina-Argelia':          { a: 3, b: 0 },  // MD1 Grupo J — Jun 16 | Messi hat-trick (39a); ARG dominó sin conceder — CS Dibu Martínez
+  'Austria-Jordan':             { a: 3, b: 1 },  // MD1 Grupo J — Jun 17 | Schmid 21', OG Al-Arab 76', Arnautovic pen 90+12'; JOR: Olwan 50'
 };
 
 // Partidos de hoy (fecha actual)
-const TODAY_MATCHES = ['Francia-Senegal', 'Irak-Noruega', 'Argentina-Argelia', 'Austria-Jordan'];
+const TODAY_MATCHES = ['Portugal-Rep. Dem. Congo', 'Uzbekistán-Colombia', 'Inglaterra-Croacia', 'Ghana-Panamá'];
 
 function getResult(home, away) {
   return RESULTS[`${home}-${away}`] || RESULTS[`${away}-${home}`] || null;
@@ -605,14 +610,14 @@ const TEAM_CONTEXT = {
   'Cabo Verde':         { dt:'Pedro Brito', star:'Vozinha', inj:'MOTM MD1: Vozinha (GK, 40a) — 7 saves vs España (27 tiros), WC debut histórico; 1er punto en historia WC' },
   'Arabia Saudita':     { dt:'Hervé Renard', star:'Al-Dawsari', inj:'' },
   'Uruguay':            { dt:'Marcelo Bielsa', star:'Darwin Núñez', inj:'' },
-  'Francia':            { dt:'Didier Deschamps', star:'Mbappé', inj:'Mbappé 🤔 (muslo, gestión minutos) + Ekitike ❌ (Aquiles, torneo)' },
-  'Senegal':            { dt:'Aliou Cissé', star:'Sadio Mané', inj:'' },
-  'Irak':               { dt:'Jesús Casas', star:'A.Karimi', inj:'' },
-  'Noruega':            { dt:'S.Solbakken', star:'Haaland', inj:'' },
-  'Argentina':          { dt:'Lionel Scaloni', star:'Messi (39)', inj:'C.Romero 🤔 (ligamento) + Paredes/Molina/Paz/Montiel 🤔 (entrenando separado)' },
-  'Argelia':            { dt:'Djamel Belmadi', star:'Mahrez', inj:'' },
-  'Austria':            { dt:'Ralf Rangnick', star:'M.Arnautovic', inj:'Baumgartner ❌ (muslo, torneo) + Alaba 🤔 (rodilla, viaja)' },
-  'Jordan':             { dt:'Hussein Ammouta', star:'Mousa Al-Tamari', inj:'' },
+  'Francia':            { dt:'Didier Deschamps', star:'Mbappé', inj:'Mbappé ✅ 2 goles MD1 vs Senegal (muslo curado) · Ekitike ❌ (Aquiles, torneo)' },
+  'Senegal':            { dt:'Aliou Cissé', star:'Sadio Mané', inj:'❌ MD1 1-3 vs Francia — Mané sin conversión; defensivamente superados' },
+  'Irak':               { dt:'Jesús Casas', star:'A.Karimi', inj:'❌ MD1 1-4 vs Noruega — defensivamente superados; Karimi gol consolación' },
+  'Noruega':            { dt:'S.Solbakken', star:'Haaland', inj:'Haaland ✅ gol debut WC MD1 vs Irak (4-1)' },
+  'Argentina':          { dt:'Lionel Scaloni', star:'Messi (39)', inj:'✅ MD1 3-0 vs Argelia — Messi hat-trick; CS · C.Romero 🤔 (ligamento) + Paredes/Molina/Paz/Montiel 🤔 (entrenando separado)' },
+  'Argelia':            { dt:'Djamel Belmadi', star:'Mahrez', inj:'❌ MD1 0-3 vs Argentina — Mahrez contenido; sin respuesta ofensiva' },
+  'Austria':            { dt:'Ralf Rangnick', star:'M.Arnautovic', inj:'✅ MD1 3-1 vs Jordan — Arnautovic ✅ penal 90+12\' · Baumgartner ❌ (muslo, torneo) + Alaba 🤔 (rodilla, viaja)' },
+  'Jordan':             { dt:'Hussein Ammouta', star:'Mousa Al-Tamari', inj:'❌ MD1 1-3 vs Austria — Olwan 50\' gol; defensivamente superados; concedió pen 90+12\'' },
   'Portugal':           { dt:'Roberto Martínez', star:'Ronaldo (41)', inj:'' },
   'Rep. Dem. Congo':    { dt:'Sébastien Desabre', star:'Silas', inj:'' },
   'Uzbekistán':         { dt:'Srecko Katanec', star:'Shomurodov', inj:'' },
@@ -648,7 +653,7 @@ const TEAM_ADJUSTMENTS = {
   'Bélgica':      { atkMult: 0.88, defMult: 1.00, note: '−12% ATK · Lukaku (tobillo — <60min amistoso vs Túnez)' },
   'Alemania':     { atkMult: 0.95, defMult: 1.05, note: '−5% ATK +5% xGA · Gnabry ❌ (aductor) + ter Stegen ❌ (muslo, torneo completo)' },
   'España':       { atkMult: 0.97, defMult: 1.00, note: '−3% ATK · Fermín López ❌ + Yamal ✅ disponible sub (hamstring, no 90min) MD1 vs CPV' },
-  'Francia':      { atkMult: 0.94, defMult: 1.00, note: '−6% ATK · Mbappé 🤔 (muslo, gestión minutos) + Ekitike ❌ (Aquiles, torneo)' },
+  'Francia':      { atkMult: 1.00, defMult: 1.00, note: 'ATK completa MD2+ · Mbappé ✅ 2 goles MD1 (muslo curado) · Ekitike ❌ (Aquiles, torneo — sin impacto lambda)' },
   'Argentina':    { atkMult: 1.00, defMult: 1.06, note: '+6% xGA · C.Romero 🤔 (ligamento) + Paredes/Molina/Paz/Montiel 🤔 (entrenando separado)' },
   'Croacia':      { atkMult: 0.95, defMult: 1.00, note: '−5% ATK · Modrić 🤔 (fractura pómulo abr, esperado fit jun 17)' },
   'Inglaterra':   { atkMult: 0.97, defMult: 1.00, note: '−3% ATK · Saka 🤔 (Aquiles, gestión minutos) + Livramento ❌ (muslo desde abr)' },
@@ -704,6 +709,16 @@ const TOURNAMENT_FORM = {
   'Cabo Verde':         { formMult: 0.82, defMult: 0.72, w: 0.07 },  // 0-0 vs España — 6 tiros, ataque mínimo; Vozinha 40a heroico (7 saves); DEFENSA HISTÓRICA MD1 WC debut
   'Arabia Saudita':     { formMult: 1.08, defMult: 1.05, w: 0.07 },  // 1-1 vs Uruguay — Al-Amri 41' (sorpresa ofensiva); lideró pero concedió Araújo 80'; bloque bajo sólido
   'Uruguay':            { formMult: 0.90, defMult: 1.05, w: 0.07 },  // 1-1 vs KSA — rescató empate Araújo 80' desde abajo; ATK por debajo de lo esperado vs equipo Elo-1750
+  // ── Grupo I — Jun 16 ──
+  'Francia':            { formMult: 1.28, defMult: 0.85, w: 0.07 },  // 3-1 vs Senegal — Mbappé×2 (muslo curado confirmado); 3 goles vs DEF Elo-1869 — ATK plena confirmada; DEF sólida (1 gol concedido)
+  'Senegal':            { formMult: 0.78, defMult: 1.32, w: 0.07 },  // 1-3 vs Francia — Mané sin conversión; concedió 3 a favorito Elo+194; defensivamente superados en transición
+  'Irak':               { formMult: 0.72, defMult: 1.42, w: 0.07 },  // 1-4 vs Noruega — ATK escasa vs favorito Elo+297; DEF superada; 1 gol de consolación (Karimi)
+  'Noruega':            { formMult: 1.38, defMult: 0.88, w: 0.07 },  // 4-1 vs Irak — Haaland gol debut WC; goleada vs Elo-1625; setBonus headers confirmado; 1 gol concedido a rival débil
+  // ── Grupo J — Jun 16-17 ──
+  'Argentina':          { formMult: 1.45, defMult: 0.70, w: 0.07 },  // 3-0 vs Argelia — Messi hat-trick (39a); CS Dibu Martínez; dominó sin conceder — mayor exhibición ATK+DEF MD1 Grupos I-J
+  'Argelia':            { formMult: 0.58, defMult: 1.40, w: 0.07 },  // 0-3 vs Argentina — sin respuesta ofensiva vs Elo+368; Mahrez contenido; defensivamente superados todo el partido
+  'Austria':            { formMult: 1.28, defMult: 0.92, w: 0.07 },  // 3-1 vs Jordan — Schmid 21'+OG 76'+Arnautovic pen 90+12'; solvente vs Elo-1648; concedió 1 (Olwan 50')
+  'Jordan':             { formMult: 0.78, defMult: 1.28, w: 0.07 },  // 1-3 vs Austria — Olwan 50' único positivo; defensivamente superados; concedió penal al final
 };
 
 // ═══════════════════════════════════════════════════
@@ -763,7 +778,7 @@ const TEAM_PROFILE = {
   'Irak':               { gkFactor: 1.07, setBonus: 0.01, depthFactor: 0.72, gkName: 'Jalal Hassan',           gkNote: 'promedio — 100 caps, volviendo de lesión' },
   'Noruega':            { gkFactor: 1.03, setBonus: 0.08, depthFactor: 0.80, gkName: 'Ørjan Nyland',           gkNote: 'promedio — Sevilla backup; Haaland 1.93m headers' },
   // ── Grupo J ──
-  'Argentina':          { gkFactor: 0.90, setBonus: 0.09, depthFactor: 1.15, gkName: 'Emiliano Martínez',      gkNote: 'élite — 3x mejor portero torneo (WC22+Copa21+Copa24)' },
+  'Argentina':          { gkFactor: 0.90, setBonus: 0.09, depthFactor: 1.15, gkName: 'Emiliano Martínez',      gkNote: 'élite — 3x mejor portero torneo (WC22+Copa21+Copa24) · CS vs Argelia MD1' },
   'Argelia':            { gkFactor: 1.04, setBonus: 0.02, depthFactor: 0.80, gkName: 'Raïs M\'Bolhi',          gkNote: 'promedio — 38 años, veterano AFCON' },
   'Austria':            { gkFactor: 1.02, setBonus: 0.03, depthFactor: 0.85, gkName: 'Patrick Pentz',          gkNote: 'sólido — Brøndby, 78.1% save%; Arnautovic headers' },
   'Jordan':             { gkFactor: 1.06, setBonus: -0.01, depthFactor: 0.70, gkName: 'Yazeed Abu Laila',       gkNote: 'promedio — Al-Wehdat doméstico, primer WC' },
