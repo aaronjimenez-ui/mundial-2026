@@ -615,7 +615,11 @@ function scheduleAutoSave(matchId) {
 function getDefaultWeek() {
   const today = cltDate(new Date().toISOString());
   for (let i = WEEKS.length - 1; i >= 0; i--) {
-    if (today >= WEEKS[i].start) return WEEKS[i].id;
+    if (today >= WEEKS[i].start) {
+      // Primer día de una semana nueva → mostrar semana anterior (tiene resultados)
+      if (today === WEEKS[i].start && i > 0) return WEEKS[i - 1].id;
+      return WEEKS[i].id;
+    }
   }
   return WEEKS[0].id;
 }
