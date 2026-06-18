@@ -2192,7 +2192,6 @@ async function bootApp() {
     leaderboard = _cached.leaderboard;
     updateHeaderPts();
     checkLiveScorePolling();
-    maybeDefaultHoy();
     try { render(); } catch(e) { console.error('render from cache error:', e); }
     checkBetReminder();
     initPushNotifications();
@@ -2235,7 +2234,6 @@ async function bootApp() {
     return;
   }
 
-  maybeDefaultHoy();
   try {
     render();
   } catch (e) {
