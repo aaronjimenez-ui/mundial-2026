@@ -656,7 +656,7 @@ async function loadAll(onProgress, timeoutMs = 10000) {
   const [matchRes, predRes] = await Promise.race([
     Promise.all([
       sb.from('mundial_matches').select('*').order('match_date', { ascending: true }),
-      sb.from('mundial_predictions').select('match_id, user_id, display_name, pred_home, pred_away, points'),
+      sb.from('mundial_predictions').select('match_id, user_id, display_name, pred_home, pred_away, points').limit(10000),
     ]),
     new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout cargando datos')), timeoutMs))
   ]);
