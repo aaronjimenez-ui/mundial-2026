@@ -772,12 +772,22 @@ function render() {
 /* ── MATCHES ── */
 function setWeek(w)  { activeWeek = w;  renderMatches(); }
 function setGroup(g) { activeGroup = g; renderMatches(); }
+function maybeDefaultHoy() {
+  const today = cltDate(new Date().toISOString());
+  if (matches.some(m => cltDate(m.match_date) === today)) activeWeek = 0;
+}
 
 function getFilteredMatches() {
-  const week = WEEKS.find(w => w.id === activeWeek);
-  let list = week
-    ? matches.filter(m => { const d = cltDate(m.match_date); return d >= week.start && d < week.end; })
-    : matches;
+  const today = cltDate(new Date().toISOString());
+  let list;
+  if (activeWeek === 0) {
+    list = matches.filter(m => cltDate(m.match_date) === today);
+  } else {
+    const week = WEEKS.find(w => w.id === activeWeek);
+    list = week
+      ? matches.filter(m => { const d = cltDate(m.match_date); return d >= week.start && d < week.end; })
+      : matches;
+  }
   if (activeGroup !== 'Todos') list = list.filter(m => m.group_name === activeGroup);
   return list;
 }
@@ -790,9 +800,19 @@ function renderMatches() {
   const currentWeekId = getDefaultWeek();
   const visibleWeeks = WEEKS;
 
+  const _todayCLT = cltDate(new Date().toISOString());
+  const _todayD   = new Date(new Date().getTime() - 4 * 3600000);
+  const _MESES    = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const _todayLabel = _MESES[_todayD.getUTCMonth()] + ' ' + _todayD.getUTCDate();
+  const _todayHasMatches = matches.some(m => cltDate(m.match_date) === _todayCLT);
+
   let html = renderNextMatchSection();
   html += `<div style="margin-bottom:10px;">
     ${visibleWeeks.length > 1 ? `<div class="hscroll" style="margin-bottom:8px;">
+      <button class="pill${activeWeek===0?' active':''}" onclick="setWeek(0)" style="display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 14px;${_todayHasMatches?'':'opacity:0.5;'}">
+        <span style="font-size:12px;">Hoy</span>
+        <span style="font-size:10px;opacity:0.7;font-weight:500;">${_todayLabel}</span>
+      </button>
       ${visibleWeeks.map(w => `
         <button class="pill${activeWeek===w.id?' active':''}" onclick="setWeek(${w.id})" style="display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 14px;">
           <span style="font-size:12px;">${w.label}</span>
@@ -2166,6 +2186,7 @@ async function bootApp() {
     leaderboard = _cached.leaderboard;
     updateHeaderPts();
     checkLiveScorePolling();
+    maybeDefaultHoy();
     try { render(); } catch(e) { console.error('render from cache error:', e); }
     checkBetReminder();
     initPushNotifications();
@@ -2208,6 +2229,7 @@ async function bootApp() {
     return;
   }
 
+  maybeDefaultHoy();
   try {
     render();
   } catch (e) {
