@@ -182,7 +182,8 @@
   <div class="method-tag"><strong>RATINGS:</strong> xGF/xGA por equipo + ajuste strength-of-schedule por confederación</div>
   <div class="method-tag"><strong>BLEND:</strong> 65% xG model + 35% Elo + dampening doble (underdog ×0.90 siempre; FAV_DAMP ×0.85 solo si underdog.blocBajo=true gap 80-300; gaps &gt;300 sin FAV_DAMP) + draw prior ×1.45 (8 draws de 16 partidos MD1=50% — recalibrado de ×1.35; anomalía histórica WC2026)</div>
   <div class="method-tag"><strong>LOCAL:</strong> MEX +0.28 / USA +0.28 / CAN +0.18 (Pollard 2006 + calibración MD1)</div>
-  <div class="method-tag"><strong>FORMA:</strong> 20% blend datos in-tournament MD1+ (Baker & McHale 2015 — umbral ≥4 partidos observados)</div>
+  <div class="method-tag"><strong>FORMA:</strong> w progresivo: 7% MD1 → 14% MD2 → 20% MD3 in-tournament (Baker & McHale 2015)</div>
+  <div class="method-tag"><strong>⚡ FATIGA:</strong> restDaysFactor automático — 4d ×0.97 ATK · 3d ×0.94 ATK (Dupont et al. 2010; afecta MD3 Grupos I/K/L)</div>
   <div class="method-tag"><strong>🧤 GK:</strong> gkFactor 0.91–1.10 — portero élite reduce xGA efectivo (Alisson 0.91, E.Martínez 0.93, Abunada 0.95)</div>
   <div class="method-tag"><strong>🎯 BP:</strong> setBonus goles/partido de balón parado sobre promedio (Argentina +0.08, Noruega +0.07, Alemania +0.04)</div>
   <div class="method-tag"><strong>🏗️ FONDO:</strong> depthFactor modula impacto lesiones — España 1.20 amortigua, Haití 0.70 amplifica (±40% diferencia)</div>
@@ -308,8 +309,13 @@ function getLambdas(teamA, teamB, homeBonus) {
   };
 }
 
-function predict(teamA, teamB, homeBonus) {
-  const { lA, lB } = getLambdas(teamA, teamB, homeBonus);
+function predict(teamA, teamB, homeBonus, matchDate) {
+  const lambdas = getLambdas(teamA, teamB, homeBonus);
+  const matchDay = parseMatchDay(matchDate);
+  const rfA = getRestFactor(teamA, matchDay);
+  const rfB = getRestFactor(teamB, matchDay);
+  const lA = lambdas.lA * rfA;
+  const lB = lambdas.lB * rfB;
   let pW = 0, pD = 0, pL = 0, total = 0;
   let over25 = 0, btts = 0;
   const scores = [];
@@ -352,7 +358,8 @@ function predict(teamA, teamB, homeBonus) {
     xGB: lB.toFixed(2),
     matrix,
     over25: Math.round(over25 * 100),
-    btts: Math.round(btts * 100)
+    btts: Math.round(btts * 100),
+    rfA, rfB
   };
 }
 
@@ -573,6 +580,49 @@ function buildMatches(teams, md1, md2, md3) {
     { home: t1, away: t4, date: md3 + ' MD3 ⚠' },
     { home: t2, away: t3, date: md3 + ' MD3 ⚠' }
   ];
+}
+
+// ═══════════════════════════════════════════════════
+// REST FACTOR — Dupont et al. 2010 / UEFA Match Load
+// Fatiga acumulada cuando hay < 6 días entre partidos.
+// Impacto real en MD3: Grupos I/K/L tienen solo 4 días
+// entre MD2 (Jun 22-23) y MD3 (Jun 26-27).
+// Se calcula automáticamente desde RESULTS + GROUPS.
+// ═══════════════════════════════════════════════════
+function parseMatchDay(dateStr) {
+  const m = (dateStr || '').match(/Jun\s+(\d+)/i);
+  return m ? parseInt(m[1]) : null;
+}
+
+function computeLastPlayed() {
+  const lp = {};
+  for (const grp of Object.values(GROUPS)) {
+    const matches = buildMatches(grp.teams, grp.md1, grp.md2, grp.md3);
+    for (const match of matches) {
+      if (!getResult(match.home, match.away)) continue;
+      const day = parseMatchDay(match.date);
+      if (!day) continue;
+      if (!lp[match.home] || day > lp[match.home]) lp[match.home] = day;
+      if (!lp[match.away] || day > lp[match.away]) lp[match.away] = day;
+    }
+  }
+  return lp;
+}
+
+// Ejecutar una vez al cargar; se actualiza automáticamente
+// cuando se agregan resultados nuevos a RESULTS.
+const LAST_PLAYED = computeLastPlayed();
+
+function getRestFactor(team, matchDay) {
+  if (!matchDay) return 1.0;
+  const lastDay = LAST_PLAYED[team];
+  if (!lastDay) return 1.0;
+  const rest = matchDay - lastDay;
+  // Umbral ≥6 días = recuperación completa (Dupont et al. 2010)
+  if (rest >= 6) return 1.00;
+  if (rest === 5) return 0.99;  // ~1% ATK — impacto mínimo
+  if (rest === 4) return 0.97;  // ~3% ATK — MD3 Grupos I/K/L
+  return 0.94;                  // ~6% ATK — 3 días o menos
 }
 
 // ═══════════════════════════════════════════════════
@@ -932,7 +982,7 @@ function renderMatchCard(match) {
   const eloH = getElo(home);
   const eloA = getElo(away);
   const homeBonus = HOSTS.includes(home) ? (HOME_BONUS_HOST[home] || 0.20) : 0;
-  const pred = predict(home, away, homeBonus);
+  const pred = predict(home, away, homeBonus, date);
   const statsH = getStats(home), statsA = getStats(away);
 
   let statusBadge, cardClass;
@@ -1012,6 +1062,7 @@ function renderMatchCard(match) {
       <span>λ ${home}: <strong>${pred.xGA}</strong> (atk ${statsH[0].toFixed(2)} × def ${statsA[1].toFixed(2)})</span>
       <span>λ ${away}: <strong>${pred.xGB}</strong></span>
     </div>
+    ${(pred.rfA < 1.0 || pred.rfB < 1.0) ? `<div class="xg-row" style="color:#ffb400">⚡ Fatiga: ${pred.rfA < 1.0 ? home + ' ×' + pred.rfA.toFixed(2) + ' (' + (LAST_PLAYED[home] ? (parseMatchDay(date) - LAST_PLAYED[home]) + 'd descanso' : '') + ')' : ''}${pred.rfA < 1.0 && pred.rfB < 1.0 ? ' · ' : ''}${pred.rfB < 1.0 ? away + ' ×' + pred.rfB.toFixed(2) + ' (' + (LAST_PLAYED[away] ? (parseMatchDay(date) - LAST_PLAYED[away]) + 'd descanso' : '') + ')' : ''}</div>` : ''}
     ${marketNote}
     ` : `
     <div class="probs-section">
