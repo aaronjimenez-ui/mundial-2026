@@ -1100,7 +1100,13 @@ async function savePred(matchId) {
   if (phElOk) { phElOk.classList.remove('unsaved'); phElOk.classList.add('saved'); }
   if (paElOk) { paElOk.classList.remove('unsaved'); paElOk.classList.add('saved'); }
 
-  userPreds[matchId] = { match_id: matchId, user_id: currentUser.id, display_name: getMyDisplayName(), pred_home: ph, pred_away: pa, points: 0 };
+  const _newPred = { match_id: matchId, user_id: currentUser.id, display_name: getMyDisplayName(), pred_home: ph, pred_away: pa, points: 0 };
+  userPreds[matchId] = _newPred;
+  // Actualizar allPreds para que el caché quede sincronizado
+  if (!allPreds[matchId]) allPreds[matchId] = [];
+  const _idx = allPreds[matchId].findIndex(p => p.user_id === currentUser.id);
+  if (_idx >= 0) allPreds[matchId][_idx] = _newPred; else allPreds[matchId].push(_newPred);
+  _saveCache();
   toast(`✓ Guardada: ${ph} – ${pa}`);
   renderMatches();
 }
