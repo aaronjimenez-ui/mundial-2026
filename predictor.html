@@ -472,8 +472,8 @@ const HOSTS = ['México', 'Canadá', 'EE.UU.'];
 
 // Resultados jugados (actualizar al avanzar el torneo)
 const RESULTS = {
-  'México-Sudáfrica':           { a: 2, b: 0 },  // MD1 Grupo A — Jun 11
-  'Corea del Sur-Chequia':      { a: 2, b: 1 },  // MD1 Grupo A — Jun 11
+  'México-Sudáfrica':           { a: 1, b: 0 },  // MD1 Grupo A — Jun 11 | Romo 42' — MEX dominó; 1 gol, CS Rangel [CORREGIDO desde 2-0]
+  'Corea del Sur-Chequia':      { a: 0, b: 1 },  // MD1 Grupo A — Jun 11 | Schick 27' cabeza — CZE ganó; KOR sin goles [CORREGIDO desde KOR 2-1]
   'Canadá-Bosnia-Herzegovina':  { a: 1, b: 1 },  // MD1 Grupo B — Jun 12
   'EE.UU.-Paraguay':            { a: 4, b: 1 },  // MD1 Grupo D — Jun 12
   'Catar-Suiza':                { a: 1, b: 1 },  // MD1 Grupo B — Jun 13 | Khoukhi 90+4 cabezazo; Suiza dominó (26 tiros, 3.24 xG)
@@ -499,10 +499,15 @@ const RESULTS = {
   'Uzbekistán-Colombia':        { a: 1, b: 3 },  // MD1 Grupo K — Jun 17 | Muñoz 40' (acrobacia, asist Díaz); Fayzullaev 60' (cabeza); L.Díaz 65'; Campaz 90+9' (cabeza, asist C.Hernández)
   'Inglaterra-Croacia':         { a: 4, b: 2 },  // MD1 Grupo L — Jun 17 | Kane 11' (pen)+42' (cabeza)=10 goles WC (iguala Lineker); Bellingham 47'; Rashford 85'; CRO: Baturina 36' (disparo lejano)+Musa 45+5
   'Ghana-Panamá':               { a: 1, b: 0 },  // MD1 Grupo L — Jun 17 | Yirenkyi 90+5' (asist Thomas-Asante); PAN dominó 61.8% posesión; gol agónico último segundo
+  // ── MD2 Grupos A & B — Jun 18 ──
+  'México-Corea del Sur':       { a: 1, b: 0 },  // MD2 Grupo A | Romo 50' — MEX clasif. asegurada (6pts); KOR 0 goles en 2 partidos WC
+  'Sudáfrica-Chequia':          { a: 1, b: 1 },  // MD2 Grupo A | Schick 5' CZE lideró; Mokoena pen 83' RSA igualó — CZE 4pts líder 2°
+  'Canadá-Catar':               { a: 6, b: 0 },  // MD2 Grupo B | David hat-trick — primera victoria WC Canadá en historia; CQT aplastado
+  'Bosnia-Herzegovina-Suiza':   { a: 1, b: 4 },  // MD2 Grupo B | Vargas 84' + doble gol + Xhaka pen — SUI domina; BIH derrumbada
 };
 
 // Partidos de hoy (fecha actual)
-const TODAY_MATCHES = ['México-Corea del Sur', 'Chequia-Sudáfrica', 'Suiza-Bosnia-Herzegovina', 'Canadá-Catar'];
+const TODAY_MATCHES = ['Brasil-Haití', 'Marruecos-Escocia', 'EE.UU.-Australia', 'Paraguay-Turquía'];  // Jun 19 MD2 Grupos C & D
 
 function getResult(home, away) {
   return RESULTS[`${home}-${away}`] || RESULTS[`${away}-${home}`] || null;
@@ -721,16 +726,16 @@ const TEAM_ADJUSTMENTS = {
 // Peso progresivo: w=0.07 MD1 → 0.14 MD2 → 0.20 MD3+ (Baker & McHale 2015 — mínimo 4 obs para 20%)
 // ═══════════════════════════════════════════════════
 const TOURNAMENT_FORM = {
-  // ── Grupo A — Jun 11 ──
-  'México':             { formMult: 1.10, defMult: 0.93, w: 0.14 },  // 2-0 vs Sudáfrica — eficiencia + solidez defensiva previa a expulsiones
-  'Sudáfrica':          { formMult: 0.85, defMult: 1.18, w: 0.14 },  // 0-2 vs México — 3 tiros en 49min, gol min 9, 2 rojas — fragilidad mental confirmada
-  'Corea del Sur':      { formMult: 1.10, defMult: 0.95, w: 0.14 },  // 2-1 vs Chequia — xG real 2.15 vs lambda 1.38, remontada, defensa sólida
-  'Chequia':            { formMult: 0.88, defMult: 1.15, w: 0.14 },  // 1-2 vs KOR — 4 tiros, posesión 38.3%, gol de long throw
-  // ── Grupo B — Jun 12-13 ──
-  'Canadá':             { formMult: 1.00, defMult: 0.98, w: 0.14 },  // 1-1 vs Bosnia — neutro ataque; defensa levemente mejor (-2%)
-  'Bosnia-Herzegovina': { formMult: 1.00, defMult: 1.00, w: 0.14 },  // 1-1 vs Canadá — neutro, gol de córner (set piece)
-  'Catar':              { formMult: 0.88, defMult: 0.85, w: 0.14 },  // 1-1 vs SUI — 7 tiros xG 0.76 (ofensiva nula); Abunada MOTM 5 saves 3.24 xG — DEF mejor de lo esperado
-  'Suiza':              { formMult: 1.08, defMult: 1.12, w: 0.14 },  // 1-1 vs QAT — 3.24 xG 26 tiros ok; conversión 0.31x (definición fallida); DEF vulnerable set piece 90+4
+  // ── Grupo A — actualizado MD1 (correg.) + MD2 Jun 18 ──
+  'México':             { formMult: 1.08, defMult: 0.88, w: 0.14 },  // 1-0 RSA + 1-0 KOR — 2 CS consecutivos; ATK funcional, clasif. asegurada 6pts
+  'Sudáfrica':          { formMult: 0.90, defMult: 1.12, w: 0.14 },  // 0-1 MEX + 1-1 CZE — Mokoena pen 83' rescató punto; 1pt; mejor de lo esperado tras corrección
+  'Corea del Sur':      { formMult: 0.62, defMult: 1.12, w: 0.14 },  // 0-1 CZE + 0-1 MEX — 0 goles en 2 WC; eliminación inminente; ATK nula confirmada
+  'Chequia':            { formMult: 1.08, defMult: 0.95, w: 0.14 },  // 1-0 KOR + 1-1 RSA — 4pts; Schick MD2 min5; DEF sólida (1 gol concedido); líder virtual G2
+  // ── Grupo B — actualizado MD2 Jun 18 ──
+  'Canadá':             { formMult: 1.28, defMult: 0.90, w: 0.14 },  // 1-1 Bosnia + 6-0 Catar — David hat-trick; ATK liberada vs rival Elo-1450; 4pts
+  'Bosnia-Herzegovina': { formMult: 0.85, defMult: 1.25, w: 0.14 },  // 1-1 Canadá + 1-4 Suiza — DEF superada (4 goles MD2); Kolasinac expuesto
+  'Catar':              { formMult: 0.55, defMult: 1.70, w: 0.14 },  // 1-1 SUI (Abunada heroico MOTM) + 0-6 CAN — ATK cero; DEF derrumbada MD2; eliminado
+  'Suiza':              { formMult: 1.22, defMult: 0.90, w: 0.14 },  // 1-1 Catar + 4-1 Bosnia — Vargas+Xhaka pen; ATK desbloqueada MD2; Kobel 4pts
   // ── Grupo C — Jun 13 ──
   'Brasil':             { formMult: 0.90, defMult: 1.00, w: 0.14 },  // 1-1 vs MAR — xG 0.85 (más bajo favorito MD1); Alisson concedió 1 de 1.22 xG MAR — DEF en nivel modelo
   'Marruecos':          { formMult: 1.12, defMult: 0.96, w: 0.14 },  // 1-1 vs BRA — xG 1.22 vs Elo+154, 12 tiros 45'; bloque bajo organizado vs favorito élite confirmado
