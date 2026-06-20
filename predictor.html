@@ -171,7 +171,7 @@
 <header>
   <h1>⚽ MUNDIAL 2026 — <span>Predictor Matemático</span></h1>
   <div class="header-meta">
-    Modelo v5.11: Poisson Bivariado + Dixon-Coles + Elo + GK Quality + Set-Pieces + Squad Depth + BlocBajo<br>
+    Modelo v5.12: Poisson Bivariado + Dixon-Coles + Elo + GK Quality + Set-Pieces + Squad Depth + BlocBajo<br>
     Actualizado: <span id="update-date"></span> · 72 partidos fase de grupos
   </div>
 </header>
@@ -247,10 +247,10 @@ const AVG = 1.22;      // Normalizador Maher calibrado WC2026 MD1 (WC promedia 1
 const DC_RHO = -0.07;  // Dixon-Coles ρ WC 2014-2022: −0.07 (vs −0.10-0.13 doméstico)
 const MAX_G = 8;        // Máximo goles por equipo en la matriz
 const ELO_SCALE = 950;  // Escala Elo→λ ampliada: WC tiene más varianza que clasif (Koopman & Lit 2019)
-const DRAW_BIAS = 1.45; // Prior empate WC fase grupos: 8 draws de 16 partidos MD1 (50%!) — recalibrado de 1.35; histórico ~28% pero WC2026 muestra anomalía
+const DRAW_BIAS = 1.35; // Prior empate WC: 9 draws en 32 partidos MD1+MD2 (28%) = promedio histórico — anomalía MD1 autocorregida en MD2 (1/8 draws); recalibrado de 1.45
 const FAV_DAMP = 0.85;  // Favorito vs bloque bajo: ATK reducida 15% cuando Elo gap > 100 (Brasil-MAR, TUR-AUS)
 // Ventaja local diferenciada (Pollard 2006): tradición futbolística + capacidad estadio
-const HOME_BONUS_HOST = { 'México': 0.28, 'EE.UU.': 0.28, 'Canadá': 0.18 };  // USA: calibrado MD1 (+0.08), CAN: +0.02
+const HOME_BONUS_HOST = { 'México': 0.28, 'EE.UU.': 0.28, 'Canadá': 0.18 };  // Incluye crowd pressure + ventaja árbitro local (CONCACAF tiene 4 refs anfitriones en el pool; Pollard 2006)
 
 const FACT_CACHE = [1,1,2,6,24,120,720,5040,40320,362880];
 
@@ -640,8 +640,8 @@ function getRestFactor(team, matchDay) {
 // ═══════════════════════════════════════════════════
 const TEAM_CONTEXT = {
   // ── Grupos A-B (MD1 jugado) ──
-  'México':             { dt:'Javier Aguirre', star:'R.Jiménez', inj:'C.Montes 🟥 susp MD2 (CB)' },
-  'Sudáfrica':          { dt:'Hugo Broos', star:'Percy Tau', inj:'Sithole 🟥 susp MD2 + Zwane 🟥 susp MD2' },
+  'México':             { dt:'Javier Aguirre', star:'R.Jiménez', inj:'C.Montes ✅ disponible MD3 (cumplió susp MD2)' },
+  'Sudáfrica':          { dt:'Hugo Broos', star:'Percy Tau', inj:'Sithole ✅ + Zwane ✅ disponibles MD3 (cumplieron susp MD2)' },
   'Corea del Sur':      { dt:'Hong Myung-bo', star:'Son Heung-min', inj:'Lee Gi-hyuk 🟨 riesgo susp MD2' },
   'Chequia':            { dt:'Ivan Hasek', star:'T.Souček', inj:'V.Cerny ❌ (torneo)' },
   'Canadá':             { dt:'Jesse Marsch', star:'A.Davies', inj:'Flores ❌ (ACL) + Bombito ❌ (tibia) · Johnston 🟨 riesgo' },
@@ -649,13 +649,13 @@ const TEAM_CONTEXT = {
   'Catar':              { dt:'Bartolomeu Sousa', star:'Al-Haydos', inj:'' },
   'Suiza':              { dt:'Murat Yakin', star:'G.Xhaka', inj:'' },
   // ── Grupo C (MD1 hoy) ──
-  'Brasil':             { dt:'Carlo Ancelotti', star:'Vinícius Jr.', inj:'Rodrygo ❌ (ACL, torneo) + Estêvão ❌ (isquio) + Neymar ❌ MD1 (gemelo grado 2) + Militao ❌ (muslo) · Casemiro 🟨 + R.Ibáñez 🟨 riesgo susp MD2' },
-  'Marruecos':          { dt:'Walid Regragui', star:'Hakimi', inj:'Ezzalzouli ❌ (rodilla) + Aguerd ❌ (pubalgia) · Mazraoui 🤔 (jugó sub 80 vs BRA, MD2 incierta)' },
+  'Brasil':             { dt:'Carlo Ancelotti', star:'Vinícius Jr.', inj:'Rodrygo ❌ (ACL) + Estêvão ❌ (isquio) + Neymar ❌ MD1+MD2 (gemelo grado 2 — entrenó individual Jun 18, incierto MD3) + Militao ❌ · Cunha emergió como goleador (2 MD2)' },
+  'Marruecos':          { dt:'Walid Regragui', star:'Hakimi', inj:'Ezzalzouli ❌ (rodilla) + Aguerd ❌ (pubalgia) · Mazraoui ✅ titular MD2 (confirmado fit) · Saibari MOTM MD1+MD2' },
   'Haití':              { dt:'Marc Collat', star:'Frantzdy Pierrot', inj:'MD1: generaron más xG que Escocia (1.21 vs 1.05) sin convertir' },
   'Escocia':            { dt:'Steve Clarke', star:'Robertson', inj:'McKenna ❌ (gemelo, CB) + Adams 🤔 (muslo) + B.Gilmour 🤔 · ganaron eficientemente 1-0 (bloc bajo)' },
   // ── Grupo D (MD1 jugado / por jugar) ──
-  'EE.UU.':             { dt:'M.Pochettino', star:'Pulisic', inj:'Agyemang ❌ (Aquiles) · T.Adams 🟨 riesgo susp MD2 · Pulisic 🤔 (pantorrilla, optimista MD2)' },
-  'Paraguay':           { dt:'Gustavo Alfaro', star:'M.Almirón', inj:'Enciso ❌ (Aquiles) · Almiron 🟨 + Gomez 🟨 + Alonso 🟨 riesgo susp MD2' },
+  'EE.UU.':             { dt:'M.Pochettino', star:'Pulisic', inj:'Pulisic ❌ (pantorrilla — no jugó MD2, confirmado) · Agyemang ❌ (Aquiles) · T.Adams 🟨 riesgo acum' },
+  'Paraguay':           { dt:'Gustavo Alfaro', star:'M.Almirón', inj:'Almirón 🟥 SUSPENDIDO MD3 + Enciso ❌ (Aquiles) — ATK sin sus 2 mejores vs Australia' },
   'Australia':          { dt:'Tony Popovic', star:'M.Leckie', inj:'✅ MD1 2-0 vs TUR (Elo 1880) — defensiva física WC-level validada; 0 goles concedidos pese a xGA sup' },
   'Turquía':            { dt:'V.Montella', star:'Arda Güler', inj:'❌ MD1 0-2 vs AUS — 0 remates al arco en 90\'; Güler contenido; ATK de clasif no se traduce a WC' },
   // ── Grupos E-L (pre-MD1) ──
@@ -689,7 +689,7 @@ const TEAM_CONTEXT = {
   'Colombia':           { dt:'Néstor Lorenzo', star:'James Rodríguez', inj:'✅ MD1 3-1 UZB — D.Muñoz 40\' (acrobacia); L.Díaz ✅ 65\'; Campaz ✅ héroe 90+9\'; sufrió hasta el 60\' (UZB igualó)' },
   'Inglaterra':         { dt:'Thomas Tuchel', star:'Kane', inj:'✅ MD1 4-2 CRO — Kane ✅ doblete (11\' pen+42\' cabeza)=10 goles WC, iguala Gary Lineker; Bellingham 47\'; Rashford 85\' · Saka 🤔 (Aquiles, gestión; no titular) + Livramento ❌ (muslo)' },
   'Croacia':            { dt:'Zlatko Dalić', star:'Modrić', inj:'❌ MD1 2-4 ENG — Baturina ✅ 36\' (disparo lejano sorpresa)+Musa 45+5\'; concedió 4 (2 penales) · Modrić ✅ JUGÓ FIT (pómulo recuperado)' },
-  'Ghana':              { dt:'Otto Addo', star:'Yirenkyi', inj:'✅ MD1 1-0 PAN — Yirenkyi héroe 90+5\' (asist Thomas-Asante); PAN dominó 61.8% posesión; GHA no creó mucho pero aguantó y mató al final' },
+  'Ghana':              { dt:'Otto Addo', star:'Yirenkyi', inj:'Kudus ❌ TORNEO COMPLETO (quad+hamstring desde ene) + Salisu ❌ · ✅ MD1 1-0 PAN — Yirenkyi héroe 90+5\'; GHA sin su estrella principal toda la competición' },
   'Panamá':             { dt:'Thomas Christiansen', star:'R.Córdoba', inj:'❌ MD1 0-1 GHA — dominaron 61.8% posesión pero sin conversión; perdieron cruelmente gol agónico 90+5\'' },
 };
 
@@ -702,26 +702,30 @@ function getContext(team) { return TEAM_CONTEXT[team] || null; }
 // Fuente: prensa deportiva + análisis cualitativo pre-torneo
 // ═══════════════════════════════════════════════════
 const TEAM_ADJUSTMENTS = {
-  // ── Grupos A-D (MD1 jugado) ──
-  'México':       { atkMult: 1.00, defMult: 1.08, note: '+8% xGA MD2 · C.Montes 🟥 suspendido MD2 (CB central)' },
-  'Sudáfrica':    { atkMult: 0.90, defMult: 1.15, note: '−10% ATK +15% xGA MD2 · Sithole 🟥 susp + Zwane 🟥 susp (ambos MD2)' },
+  // ── Grupos A-D (MD2 jugado — suspensiones actualizadas) ──
+  'México':       { atkMult: 1.00, defMult: 1.00, note: 'C.Montes ✅ disponible MD3 (cumplió susp MD2)' },
+  'Sudáfrica':    { atkMult: 0.92, defMult: 1.00, note: '−8% ATK · Sithole ✅ + Zwane ✅ disponibles MD3 (cumplieron susp MD2)' },
   'Canadá':       { atkMult: 0.94, defMult: 1.00, note: '−6% ATK · Flores ❌ (ACL) + Bombito ❌ (tibia) · Johnston 🟨 riesgo susp' },
-  'Paraguay':     { atkMult: 0.88, defMult: 1.08, note: '−12% ATK +8% xGA · Enciso ❌ (Aquiles) · 🟨 Almiron+Gomez+Alonso riesgo suspensión MD2' },
-  'EE.UU.':       { atkMult: 1.00, defMult: 1.00, note: '· T.Adams 🟨 riesgo susp MD2 · Pulisic 🤔 (pantorrilla, optimista MD2)' },
-  // ── Grupo C (MD1 hoy) ──
-  'Brasil':       { atkMult: 0.85, defMult: 1.02, note: '−15% ATK +2% xGA · Rodrygo ❌ (ACL, torneo) + Estêvão ❌ (isquio) + Neymar ❌ MD1 (gemelo grado 2) · Casemiro 🟨 + R.Ibáñez 🟨 riesgo susp MD2' },
-  'Marruecos':    { atkMult: 0.90, defMult: 1.08, note: '−10% ATK +8% xGA · Ezzalzouli ❌ (rodilla) + Aguerd ❌ (pubalgia) · Mazraoui 🤔 (jugó sub 80 vs BRA, MD2 incierta)' },
-  'Escocia':      { atkMult: 1.00, defMult: 1.08, note: '+8% xGA · McKenna ❌ (gemelo, CB titular) + Adams 🤔 (muslo) · ganaron MD1 eficientemente (1-0 vs HAI)' },
-  // ── Grupos E-L (pre-MD1) ──
+  'Paraguay':     { atkMult: 0.80, defMult: 1.08, note: '−20% ATK · Enciso ❌ (Aquiles) + Almirón 🟥 SUSPENDIDO MD3 · plantilla ATK muy limitada sin sus 2 mejores' },
+  'EE.UU.':       { atkMult: 0.90, defMult: 1.00, note: '−10% ATK · Pulisic ❌ (pantorrilla, no jugó MD2 — confirmado) · T.Adams 🟨 riesgo acum' },
+  // ── Grupo C (actualizado MD2) ──
+  'Brasil':       { atkMult: 0.85, defMult: 1.02, note: '−15% ATK · Rodrygo ❌ (ACL) + Estêvão ❌ (isquio) + Neymar ❌ MD1+MD2 (gemelo grado 2, incierto MD3) + Militao ❌' },
+  'Marruecos':    { atkMult: 0.90, defMult: 1.08, note: '−10% ATK · Ezzalzouli ❌ (rodilla) + Aguerd ❌ (pubalgia) · Mazraoui 🤔 (jugó sub 80 MD1, titular MD2 ✅)' },
+  'Escocia':      { atkMult: 1.00, defMult: 1.08, note: '+8% xGA · McKenna ❌ (gemelo, CB titular) + Adams 🤔 (muslo)' },
+  // ── Grupos E-L (pre-MD1 o MD1 jugado) ──
   'Países Bajos': { atkMult: 0.90, defMult: 1.18, note: '−10% ATK +18% xGA · Timber ❌ (ingle) + Simons ❌ (ACL) + De Ligt ❌ (espalda)' },
-  'Japón':        { atkMult: 0.88, defMult: 1.03, note: '−12% ATK +3% xGA · Mitoma ❌ (isquio) + Minamino ❌ (ACL) + Endo 🤔 (pie)' },
-  'Bélgica':      { atkMult: 0.88, defMult: 1.00, note: '−12% ATK · Lukaku (tobillo — <60min amistoso vs Túnez)' },
-  'Alemania':     { atkMult: 0.95, defMult: 1.05, note: '−5% ATK +5% xGA · Gnabry ❌ (aductor) + ter Stegen ❌ (muslo, torneo completo)' },
-  'España':       { atkMult: 0.97, defMult: 1.00, note: '−3% ATK · Fermín López ❌ + Yamal ✅ disponible sub (hamstring, no 90min) MD1 vs CPV' },
-  'Francia':      { atkMult: 1.00, defMult: 1.00, note: 'ATK completa MD2+ · Mbappé ✅ 2 goles MD1 (muslo curado) · Ekitike ❌ (Aquiles, torneo — sin impacto lambda)' },
-  'Argentina':    { atkMult: 1.00, defMult: 1.06, note: '+6% xGA · C.Romero 🤔 (ligamento) + Paredes/Molina/Paz/Montiel 🤔 (entrenando separado)' },
-  'Croacia':      { atkMult: 0.95, defMult: 1.18, note: '−5% ATK +18% xGA · Modrić ✅ JUGÓ FIT MD1; DEF expuesta 4 goles vs ENG (2 penales) — vulnerabilidad confirmada en turno' },
-  'Inglaterra':   { atkMult: 0.97, defMult: 1.00, note: '−3% ATK · Saka 🤔 (Aquiles, gestión minutos) + Livramento ❌ (muslo desde abr)' },
+  'Japón':        { atkMult: 0.88, defMult: 1.03, note: '−12% ATK · Mitoma ❌ (isquio) + Minamino ❌ (ACL) + Endo 🤔 (pie)' },
+  'Bélgica':      { atkMult: 0.88, defMult: 1.00, note: '−12% ATK · Lukaku 🤔 (tobillo — <60min amistoso; incierto titular MD2)' },
+  'Alemania':     { atkMult: 0.95, defMult: 1.05, note: '−5% ATK · Gnabry ❌ (aductor) + ter Stegen ❌ (torneo completo)' },
+  'España':       { atkMult: 0.97, defMult: 1.00, note: '−3% ATK · Fermín López ❌ + Yamal ✅ disponible (gestionando minutos)' },
+  'Francia':      { atkMult: 1.00, defMult: 1.00, note: 'ATK completa · Mbappé ✅ 2 goles MD1 (muslo curado) · Ekitike ❌ (Aquiles, torneo — sin impacto)' },
+  'Argentina':    { atkMult: 1.00, defMult: 1.06, note: '+6% xGA · C.Romero 🤔 (ligamento) + Paredes 🤔 · Messi ✅ fit (20min+pen vs Argelia)' },
+  'Croacia':      { atkMult: 0.95, defMult: 1.18, note: '−5% ATK +18% xGA · Modrić ✅ fit MD1; DEF expuesta (4 goles vs ENG, 2 penales)' },
+  'Inglaterra':   { atkMult: 0.97, defMult: 1.00, note: '−3% ATK · Saka 🤔 (Aquiles, gestión minutos) + Livramento ❌ (muslo)' },
+  'Ghana':        { atkMult: 0.85, defMult: 1.00, note: '−15% ATK · Kudus ❌ (torneo completo — quad+hamstring) + Salisu ❌ · sin estrella ATK principal' },
+  // ── Factor institucional (no cuantificado en lambda) ──
+  // Arabia Saudita: motivación elevada por WC 2034 (imagen FIFA) — capturado parcialmente en TOURNAMENT_FORM
+  // Anfitriones (USA/MEX/CAN): ventaja árbitro CONCACAF ya incluida en HOME_BONUS_HOST
 };
 
 // ═══════════════════════════════════════════════════
@@ -791,7 +795,7 @@ const TOURNAMENT_FORM = {
   // ── Grupo L — Jun 17 ──
   'Inglaterra':         { formMult: 1.35, defMult: 1.20, w: 0.14 },  // 4-2 vs CRO — Kane doblete (10 WC goals=Lineker); Bellingham+Rashford; ATK confirmada; DEF concedió 2 (Baturina+Musa)
   'Croacia':            { formMult: 1.12, defMult: 1.42, w: 0.14 },  // 2-4 vs ENG — Baturina 36' (disparo lejano sorpresa)+Musa 45+5' ATK superó expectativa; concedió 4 (2 penales) DEF muy vulnerable
-  'Ghana':              { formMult: 0.82, defMult: 0.92, w: 0.14 },  // 1-0 vs PAN — gol agónico Yirenkyi 90+5'; PAN dominó 61.8% posesión; GHA no creó mucho — eficiencia táctica pero ATK baja
+  'Ghana':              { formMult: 0.75, defMult: 0.92, w: 0.14 },  // 1-0 vs PAN — gol agónico Yirenkyi 90+5'; ATK ya baja sin Kudus ❌ torneo completo; formMult reducido post-discovery lesión
   'Panamá':             { formMult: 1.02, defMult: 1.15, w: 0.14 },  // 0-1 vs GHA — dominaron 61.8% posesión; crearon ocasiones pero sin definición; perdieron gol agónico — no tan inofensivos
 };
 
