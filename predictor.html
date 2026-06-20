@@ -171,7 +171,7 @@
 <header>
   <h1>⚽ MUNDIAL 2026 — <span>Predictor Matemático</span></h1>
   <div class="header-meta">
-    Modelo v5.6: Poisson Bivariado + Dixon-Coles + Elo + GK Quality + Set-Pieces + Squad Depth + BlocBajo<br>
+    Modelo v5.11: Poisson Bivariado + Dixon-Coles + Elo + GK Quality + Set-Pieces + Squad Depth + BlocBajo<br>
     Actualizado: <span id="update-date"></span> · 72 partidos fase de grupos
   </div>
 </header>
@@ -504,10 +504,15 @@ const RESULTS = {
   'Sudáfrica-Chequia':          { a: 1, b: 1 },  // MD2 Grupo A | Schick 5' CZE lideró; Mokoena pen 83' RSA igualó — CZE 4pts líder 2°
   'Canadá-Catar':               { a: 6, b: 0 },  // MD2 Grupo B | David hat-trick — primera victoria WC Canadá en historia; CQT aplastado
   'Bosnia-Herzegovina-Suiza':   { a: 1, b: 4 },  // MD2 Grupo B | Vargas 84' + doble gol + Xhaka pen — SUI domina; BIH derrumbada
+  // ── MD2 Grupos C & D — Jun 19 ──
+  'Marruecos-Escocia':          { a: 1, b: 0 },  // MD2 Grupo C | Saibari 2' — MAR 4pts; SCO sin goles en MD2; bloque bajo MAR sólido vs rival ofensivo
+  'Brasil-Haití':               { a: 3, b: 0 },  // MD2 Grupo C | Cunha×2 + Vinícius — BRA ATK desbloqueada; HAI eliminado (0 goles en 2 WC)
+  'EE.UU.-Australia':           { a: 2, b: 0 },  // MD2 Grupo D | USA gana grupo (6pts); 2° CS consecutivo; AUS 0 goles en MD2 vs anfitrión
+  'Paraguay-Turquía':           { a: 1, b: 0 },  // MD2 Grupo D | Galarza 64" — gol más rápido del torneo; TUR 0 goles en 2 WC; PAR rebotó de 1-4
 };
 
 // Partidos de hoy (fecha actual)
-const TODAY_MATCHES = ['Brasil-Haití', 'Marruecos-Escocia', 'EE.UU.-Australia', 'Paraguay-Turquía'];  // Jun 19 MD2 Grupos C & D
+const TODAY_MATCHES = ['Alemania-Costa de Marfil', 'Curazao-Ecuador', 'Países Bajos-Suecia', 'Japón-Túnez'];  // Jun 20 MD2 Grupos E & F
 
 function getResult(home, away) {
   return RESULTS[`${home}-${away}`] || RESULTS[`${away}-${home}`] || null;
@@ -736,17 +741,16 @@ const TOURNAMENT_FORM = {
   'Bosnia-Herzegovina': { formMult: 0.85, defMult: 1.25, w: 0.14 },  // 1-1 Canadá + 1-4 Suiza — DEF superada (4 goles MD2); Kolasinac expuesto
   'Catar':              { formMult: 0.55, defMult: 1.70, w: 0.14 },  // 1-1 SUI (Abunada heroico MOTM) + 0-6 CAN — ATK cero; DEF derrumbada MD2; eliminado
   'Suiza':              { formMult: 1.22, defMult: 0.90, w: 0.14 },  // 1-1 Catar + 4-1 Bosnia — Vargas+Xhaka pen; ATK desbloqueada MD2; Kobel 4pts
-  // ── Grupo C — Jun 13 ──
-  'Brasil':             { formMult: 0.90, defMult: 1.00, w: 0.14 },  // 1-1 vs MAR — xG 0.85 (más bajo favorito MD1); Alisson concedió 1 de 1.22 xG MAR — DEF en nivel modelo
-  'Marruecos':          { formMult: 1.12, defMult: 0.96, w: 0.14 },  // 1-1 vs BRA — xG 1.22 vs Elo+154, 12 tiros 45'; bloque bajo organizado vs favorito élite confirmado
-  'Haití':              { formMult: 1.05, defMult: 1.00, w: 0.14 },  // 0-1 vs Escocia — xG 1.21 vs 1.05, 15 tiros, 54% posesión post-gol | sin conversión pese a dominio
-  'Escocia':            { formMult: 0.97, defMult: 0.88, w: 0.14 },  // 1-0 vs Haití — xG 1.05 vs HAI 1.21 | McGinn 28'; defensa sólida sin McKenna (aguantó 15 tiros)
-  // ── Grupo D — Jun 12 ──
-  'EE.UU.':             { formMult: 1.18, defMult: 0.90, w: 0.14 },  // 4-1 vs Paraguay — 17 tiros, 5 SOT, 72% posesión, dominancia total
-  'Paraguay':           { formMult: 0.85, defMult: 1.20, w: 0.14 },  // 1-4 vs EE.UU. — 8 tiros 1 SOT, fragilidad defensiva real
-  // ── Grupo D completion — Jun 14 ──
-  'Australia':          { formMult: 1.22, defMult: 0.80, w: 0.14 },  // 2-0 vs Turquía — bloqueó favorito Elo-1880; defensiva WC-level validada (0 goles concedidos con xGA inf)
-  'Turquía':            { formMult: 0.68, defMult: 1.30, w: 0.14 },  // 0-2 vs Australia — 0 remates al arco pese a xG 1.82; conversión real = 0; ATK de clasif no aplica WC
+  // ── Grupo C — actualizado MD2 Jun 19 ──
+  'Brasil':             { formMult: 1.10, defMult: 0.88, w: 0.14 },  // 1-1 MAR + 3-0 HAI — Cunha×2+Vinícius; ATK desbloqueada MD2 (HAI Elo-1502); CS Alisson confirmado MD2; clasif. segura
+  'Marruecos':          { formMult: 1.18, defMult: 0.88, w: 0.14 },  // 1-1 BRA + 1-0 SCO — Saibari ×2 (MD1+MD2); 4pts; CS vs SCO; bloque bajo organizado confirmado 2 partidos
+  'Haití':              { formMult: 0.62, defMult: 1.35, w: 0.14 },  // 0-1 SCO + 0-3 BRA — 0 goles en 2 WC; eliminado; ATK crisis total; concedió 4 goles (1 SCO + 3 BRA)
+  'Escocia':            { formMult: 0.85, defMult: 1.02, w: 0.14 },  // 1-0 HAI + 0-1 MAR — ATK bloqueada por bloque bajo MAR; concedió a Saibari 2' MD2; 3pts — necesita MD3
+  // ── Grupo D — actualizado MD2 Jun 19 ──
+  'EE.UU.':             { formMult: 1.18, defMult: 0.80, w: 0.14 },  // 4-1 PAR + 2-0 AUS — gana grupo 6pts; 2 CS consecutivos; dominancia total como anfitrión; ATK constante
+  'Paraguay':           { formMult: 0.95, defMult: 1.05, w: 0.14 },  // 1-4 EE.UU. + 1-0 TUR — Galarza 64" gol más rápido torneo; rebote notable; CS vs TUR (rival con 0 goles WC)
+  'Australia':          { formMult: 0.95, defMult: 0.95, w: 0.14 },  // 2-0 TUR (defensiva WC-level) + 0-2 USA — ATK sin gol vs rival de calidad; DEF cedió vs anfitrión; forma mixta
+  'Turquía':            { formMult: 0.52, defMult: 1.38, w: 0.14 },  // 0-2 AUS + 0-1 PAR — 0 goles en 2 WC; concedió en 64"; ATK confirmada rota en WC; DEF frágil (3 concedidos)
   // ── Grupo E — Jun 14 ──
   'Alemania':           { formMult: 1.35, defMult: 0.92, w: 0.14 },  // 7-1 vs Curazao — goleada histórica; Elo gap 370 → CUR no formó bloque bajo; ATK real > lambda modelo
   'Curazao':            { formMult: 0.80, defMult: 1.60, w: 0.14 },  // 1-7 vs Alemania — defensivamente superados; 1 gol de consolación
