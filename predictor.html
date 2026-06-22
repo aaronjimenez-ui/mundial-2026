@@ -509,10 +509,20 @@ const RESULTS = {
   'Brasil-Haití':               { a: 3, b: 0 },  // MD2 Grupo C | Cunha 23'+36' + Vinícius 45+3' — todo en 1er tiempo; HAI 1er eliminado del torneo (0 goles en 2 WC)
   'EE.UU.-Australia':           { a: 2, b: 0 },  // MD2 Grupo D | OG Burgess 11' + Freeman 43' (VAR); USA gana grupo 6pts; Pulisic ❌ lesionado
   'Paraguay-Turquía':           { a: 1, b: 0 },  // MD2 Grupo D | Galarza 64" (asist Enciso) — gol más rápido torneo (superó Saibari 70"); Almirón 🟥; TUR eliminado
+  // ── MD2 Grupos E & F — Jun 20-21 ──
+  'Alemania-Costa de Marfil':  { a: 2, b: 1 },  // MD2 Grupo E | Kessie 30' (CIV); Undav 68'+90+4' (GER sub) — clasif. ALE asegurada 6pts
+  'Ecuador-Curazao':           { a: 0, b: 0 },  // MD2 Grupo E | SHOCK: ECU 0 goles vs peor del grupo — 0pts, eliminado virtual
+  'Países Bajos-Suecia':       { a: 5, b: 1 },  // MD2 Grupo F | Brobbey×2+Gakpo×2+Summerville (NED); Elanga (SWE) — ATK NED masiva; Dumfries MOTM
+  'Japón-Túnez':               { a: 4, b: 0 },  // MD2 Grupo F | Kamada 4'+Ueda 31'+Ito 69'+Ueda 83' — dominio total; CS Suzuki; TUN eliminado
+  // ── MD2 Grupos G & H — Jun 21 ──
+  'Bélgica-Irán':              { a: 0, b: 0 },  // MD2 Grupo G | Ngoy 🟥 66'; Taremi gol anulado VAR; Beiranvand 7 saves vs BEL 10men — moral IRI
+  'Egipto-Nueva Zelanda':      { a: 3, b: 1 },  // MD2 Grupo G | Surman 15' (NZL cabeza); Zico+Salah+Trezeguet (EGY) — 1er WC victory Egipto historia
+  'España-Arabia Saudita':     { a: 4, b: 0 },  // MD2 Grupo H | Yamal 10'+Oyarzabal 21'+24'+OG Altambakti 49' — ATK ESP desbloqueada con Yamal titular
+  'Uruguay-Cabo Verde':        { a: 2, b: 2 },  // MD2 Grupo H | Araújo+Canobbio (URU); K.Pina FK+H.Varela sub (CPV) — 2° shock CPV del torneo
 };
 
 // Partidos de hoy (fecha actual)
-const TODAY_MATCHES = ['Alemania-Costa de Marfil', 'Curazao-Ecuador', 'Países Bajos-Suecia', 'Japón-Túnez'];  // Jun 20 MD2 Grupos E & F
+const TODAY_MATCHES = ['Argentina-Austria', 'Francia-Irak', 'Noruega-Senegal', 'Argelia-Jordan'];  // Jun 22 MD2 Grupos I & J
 
 function getResult(home, away) {
   return RESULTS[`${home}-${away}`] || RESULTS[`${away}-${home}`] || null;
@@ -556,7 +566,7 @@ const GROUPS = {
   },
   'G': {
     teams: ['Bélgica','Egipto','Irán','Nueva Zelanda'],
-    md1: 'Jun 15', md2: 'Jun 20', md3: 'Jun 26'
+    md1: 'Jun 15', md2: 'Jun 21', md3: 'Jun 26'
   },
   'H': {
     teams: ['España','Cabo Verde','Arabia Saudita','Uruguay'],
@@ -714,15 +724,16 @@ const TEAM_ADJUSTMENTS = {
   'Escocia':      { atkMult: 1.00, defMult: 1.08, note: '+8% xGA · McKenna ❌ (gemelo, CB titular) + Adams 🤔 (muslo)' },
   // ── Grupos E-L (pre-MD1 o MD1 jugado) ──
   'Países Bajos': { atkMult: 0.90, defMult: 1.18, note: '−10% ATK +18% xGA · Timber ❌ (ingle) + Simons ❌ (ACL) + De Ligt ❌ (espalda)' },
-  'Japón':        { atkMult: 0.88, defMult: 1.03, note: '−12% ATK · Mitoma ❌ (isquio) + Minamino ❌ (ACL) + Endo 🤔 (pie)' },
-  'Bélgica':      { atkMult: 0.88, defMult: 1.00, note: '−12% ATK · Lukaku 🤔 (tobillo — <60min amistoso; incierto titular MD2)' },
+  'Japón':        { atkMult: 0.93, defMult: 1.02, note: '−7% ATK · Mitoma ❌ (isquio) + Minamino ❌ (ACL) — MD2 confirmó ATK funcional (4-0 TUN: Kamada+Ueda×2+Ito); Endo ✅ jugó' },
+  'Bélgica':      { atkMult: 0.85, defMult: 1.05, note: '−15% ATK · Lukaku 🤔 (sin goles MD1+MD2) + Ngoy 🟥 SUSPENDIDO MD3 · +5% xGA sin Ngoy CB' },
   'Alemania':     { atkMult: 0.95, defMult: 1.05, note: '−5% ATK · Gnabry ❌ (aductor) + ter Stegen ❌ (torneo completo)' },
-  'España':       { atkMult: 0.97, defMult: 1.00, note: '−3% ATK · Fermín López ❌ + Yamal ✅ disponible (gestionando minutos)' },
+  'España':       { atkMult: 1.00, defMult: 1.00, note: 'ATK plena · Yamal ✅ titular MD2 (gol + asist) + Oyarzabal doblete · Fermín López ❌ suplido por profundidad' },
   'Francia':      { atkMult: 1.00, defMult: 1.00, note: 'ATK completa · Mbappé ✅ 2 goles MD1 (muslo curado) · Ekitike ❌ (Aquiles, torneo — sin impacto)' },
   'Argentina':    { atkMult: 1.00, defMult: 1.06, note: '+6% xGA · C.Romero 🤔 (ligamento) + Paredes 🤔 · Messi ✅ fit (20min+pen vs Argelia)' },
   'Croacia':      { atkMult: 0.95, defMult: 1.18, note: '−5% ATK +18% xGA · Modrić ✅ fit MD1; DEF expuesta (4 goles vs ENG, 2 penales)' },
   'Inglaterra':   { atkMult: 0.97, defMult: 1.00, note: '−3% ATK · Saka 🤔 (Aquiles, gestión minutos) + Livramento ❌ (muslo)' },
   'Ghana':        { atkMult: 0.85, defMult: 1.00, note: '−15% ATK · Kudus ❌ (torneo completo — quad+hamstring) + Salisu ❌ · sin estrella ATK principal' },
+  'Uruguay':      { atkMult: 0.97, defMult: 1.00, note: '−3% ATK · Bentancur 🟨 riesgo susp MD3 · Araújo+Canobbio scoring OK MD2' },
   // ── Factor institucional (no cuantificado en lambda) ──
   // Arabia Saudita: motivación elevada por WC 2034 (imagen FIFA) — capturado parcialmente en TOURNAMENT_FORM
   // Anfitriones (USA/MEX/CAN): ventaja árbitro CONCACAF ya incluida en HOME_BONUS_HOST
@@ -755,28 +766,26 @@ const TOURNAMENT_FORM = {
   'Paraguay':           { formMult: 0.95, defMult: 1.05, w: 0.14 },  // 1-4 EE.UU. + 1-0 TUR — Galarza 64" gol más rápido torneo; rebote notable; CS vs TUR (rival con 0 goles WC)
   'Australia':          { formMult: 0.95, defMult: 0.95, w: 0.14 },  // 2-0 TUR (defensiva WC-level) + 0-2 USA — ATK sin gol vs rival de calidad; DEF cedió vs anfitrión; forma mixta
   'Turquía':            { formMult: 0.52, defMult: 1.38, w: 0.14 },  // 0-2 AUS + 0-1 PAR — ELIMINADO 0pts; 0 goles en 2 WC; concedió en 64"; ATK confirmada rota; DEF frágil (3 concedidos)
-  // ── Grupo E — Jun 14 ──
-  'Alemania':           { formMult: 1.35, defMult: 0.92, w: 0.14 },  // 7-1 vs Curazao — goleada histórica; Elo gap 370 → CUR no formó bloque bajo; ATK real > lambda modelo
-  'Curazao':            { formMult: 0.80, defMult: 1.60, w: 0.14 },  // 1-7 vs Alemania — defensivamente superados; 1 gol de consolación
-  // ── Grupo F — Jun 14 ──
-  'Países Bajos':       { formMult: 0.90, defMult: 1.30, w: 0.14 },  // 2-2 vs Japón — Simons❌ De Ligt❌ expuso defensa; concedió más de lo esperado vs equipo lesionado
-  'Japón':              { formMult: 1.22, defMult: 1.02, w: 0.14 },  // 2-2 vs Países Bajos — igualó 89' pese a Mitoma❌ Minamino❌; intensidad WC y conversión validadas
-  // ── Grupo E completion — Jun 14 ──
-  'Costa de Marfil':    { formMult: 1.22, defMult: 0.92, w: 0.14 },  // 1-0 vs Ecuador — creó 1.68 xG (λ=1.29 +31%); Amad 90'; ECU 1.03 xG→0 goles | CIV sólido defensivamente
-  'Ecuador':            { formMult: 0.92, defMult: 1.08, w: 0.14 },  // 0-1 vs CIV — creó 1.03 xG ≈ modelo; 1 SOT→0 goles (eficiencia nula); def expuesta (CIV 1.68 xG concedidos)
-  // ── Grupo F completion — Jun 14 ──
-  'Suecia':             { formMult: 1.22, defMult: 0.75, w: 0.14 },  // 5-1 vs Túnez — xG real 1.36 (λ=1.09 +25%); 5 goles 3.7x conv (outlier histórico); TUN 0.29 xG → def excelente
-  'Túnez':              { formMult: 0.35, defMult: 1.52, w: 0.14 },  // 1-5 vs Suecia — xG real 0.29 vs λ=0.89 (−67%); ATK inflada por rivales AFCON débiles; def expuesta 1.36 xG
-  // ── Grupo G — Jun 15 ──
-  'Bélgica':            { formMult: 0.90, defMult: 1.10, w: 0.14 },  // 1-1 vs Egipto — gol vía OG Hany 66' (no propio); EGY dominó 1ra parte; ATK subestimada con Lukaku sub
-  'Egipto':             { formMult: 1.18, defMult: 0.90, w: 0.14 },  // 1-1 vs Bélgica — Ashour 20' (Salah assist?); EGY lideró 46min vs favorito; def sólida (solo OG concedido)
-  'Irán':               { formMult: 1.08, defMult: 1.15, w: 0.14 },  // 2-2 vs NZL — Rezaeian 32'+Mohebbi 64'; lideró 64'–FT pero no aguantó bloque bajo NZL; concedió doblete a Just
-  'Nueva Zelanda':      { formMult: 1.40, defMult: 1.08, w: 0.14 },  // 2-2 vs Irán — E.Just doblete 7'+54' (MAYOR sobre-rendimiento ATK WC2026 vs Elo gap); concedió 2 a IRN
-  // ── Grupo H — Jun 15 ──
-  'España':             { formMult: 0.88, defMult: 0.90, w: 0.14 },  // 0-0 vs Cabo Verde — 27 tiros 7 SOT 0 goles (NULA conversión); Yamal sub; CS positivo pero vs Elo+400 = alerta ATK
-  'Cabo Verde':         { formMult: 0.82, defMult: 0.72, w: 0.14 },  // 0-0 vs España — 6 tiros, ataque mínimo; Vozinha 40a heroico (7 saves); DEFENSA HISTÓRICA MD1 WC debut
-  'Arabia Saudita':     { formMult: 1.08, defMult: 1.05, w: 0.14 },  // 1-1 vs Uruguay — Al-Amri 41' (sorpresa ofensiva); lideró pero concedió Araújo 80'; bloque bajo sólido
-  'Uruguay':            { formMult: 0.90, defMult: 1.05, w: 0.14 },  // 1-1 vs KSA — rescató empate Araújo 80' desde abajo; ATK por debajo de lo esperado vs equipo Elo-1750
+  // ── Grupo E — actualizado MD2 Jun 20-21 ──
+  'Alemania':           { formMult: 1.22, defMult: 0.95, w: 0.14 },  // 7-1 CUR (MD1) + 2-1 CIV (MD2) — Undav sub 2 goles MD2; ATK constante; DEF concedió 1 vs CIV (Kessie 30')
+  'Curazao':            { formMult: 0.72, defMult: 1.25, w: 0.14 },  // 1-7 ALE (MD1) + 0-0 ECU (MD2) — CS sorpresa vs ECU; DEF mejoró vs rival débil; ATK cero en 2 partidos; eliminado
+  'Costa de Marfil':    { formMult: 1.12, defMult: 1.02, w: 0.14 },  // 1-0 ECU (MD1) + 1-2 ALE (MD2) — Kessie 30' MD2; scoring consistente 2 MD; concedió 2 tardíos vs ALE
+  'Ecuador':            { formMult: 0.68, defMult: 0.95, w: 0.14 },  // 0-1 CIV (MD1) + 0-0 CUR (MD2) — 0 goles en 2 partidos WC; ELIMINADO; CS vs CUR única positiva DEF
+  // ── Grupo F — actualizado MD2 Jun 20-21 ──
+  'Países Bajos':       { formMult: 1.25, defMult: 1.08, w: 0.14 },  // 2-2 JAP (MD1) + 5-1 SWE (MD2) — Brobbey×2+Gakpo×2+Summerville; ATK MASIVA desbloqueada; aún concedió 1 a SWE
+  'Japón':              { formMult: 1.35, defMult: 0.88, w: 0.14 },  // 2-2 NED (MD1) + 4-0 TUN (MD2) — Kamada 4'+Ueda×2+Ito 69'; ATK confirmada sin Mitoma; CS Suzuki MD2
+  'Suecia':             { formMult: 0.72, defMult: 1.52, w: 0.14 },  // 5-1 TUN (MD1 outlier) + 1-5 NED (MD2) — MD1 era fluke; vs rivales de calidad: ATK nula, DEF expuesta; eliminado
+  'Túnez':              { formMult: 0.28, defMult: 1.65, w: 0.14 },  // 1-5 SWE (MD1) + 0-4 JAP (MD2) — 1 gol en 2 partidos (consolación); 9 goles concedidos; ELIMINADO
+  // ── Grupo G — actualizado MD2 Jun 21 ──
+  'Bélgica':            { formMult: 0.82, defMult: 0.95, w: 0.14 },  // 1-1 EGY (MD1) + 0-0 IRN (MD2 10men 66') — 0 goles en 2 MD; ATK en crisis; Courtois con 10 men = DEF elite confirmada
+  'Egipto':             { formMult: 1.35, defMult: 0.92, w: 0.14 },  // 1-1 BEL (MD1) + 3-1 NZL (MD2) — Zico+Salah+Trezeguet; 1er WC victory historia; ATK confirmada; 2 goles concedidos en 2 MD
+  'Irán':               { formMult: 0.92, defMult: 0.88, w: 0.14 },  // 2-2 NZL (MD1) + 0-0 BEL (MD2) — Beiranvand ÉLITE 7 saves vs BEL; Taremi gol anulado VAR; DEF bloque bajo confirmada
+  'Nueva Zelanda':      { formMult: 0.92, defMult: 1.22, w: 0.14 },  // 2-2 IRN (MD1 outlier Just) + 1-3 EGY (MD2) — MD1 era outlier; Surman 15' único positivo; ELIMINADO; concedió 3 vs EGY
+  // ── Grupo H — actualizado MD2 Jun 21 ──
+  'España':             { formMult: 1.22, defMult: 0.80, w: 0.14 },  // 0-0 CPV (MD1) + 4-0 KSA (MD2) — Yamal 10'+Oyarzabal×2+OG; ATK DESBLOQUEADA con Yamal titular; CS vs KSA
+  'Cabo Verde':         { formMult: 1.02, defMult: 0.85, w: 0.14 },  // 0-0 ESP (MD1) + 2-2 URU (MD2) — K.Pina FK+H.Varela sub ATK revelación; DEF sólida (2pts en 2 MD vs ESP+URU)
+  'Arabia Saudita':     { formMult: 0.78, defMult: 1.32, w: 0.14 },  // 1-1 URU (MD1) + 0-4 ESP (MD2) — bloque bajo vs débiles OK; vs calidad: 4 goles encajados; OG Altambakti; eliminación inminente
+  'Uruguay':            { formMult: 0.95, defMult: 1.18, w: 0.14 },  // 1-1 KSA (MD1) + 2-2 CPV (MD2) — ATK mejoró (Araújo+Canobbio); pero no pudo ganar vs minnow; DEF concedió 2 a CPV
   // ── Grupo I — Jun 16 ──
   'Francia':            { formMult: 1.28, defMult: 0.85, w: 0.14 },  // 3-1 vs Senegal — Mbappé×2 (muslo curado confirmado); 3 goles vs DEF Elo-1869 — ATK plena confirmada; DEF sólida (1 gol concedido)
   'Senegal':            { formMult: 0.78, defMult: 1.32, w: 0.14 },  // 1-3 vs Francia — Mané sin conversión; concedió 3 a favorito Elo+194; defensivamente superados en transición
