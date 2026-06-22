@@ -1102,9 +1102,9 @@ async function savePred(matchId) {
     });
     if (isRLS) {
       const hadPrev = !!userPreds[matchId];
-      toast(hadPrev ? '🔒 Partido iniciado — tu apuesta anterior sigue guardada' : '🔒 Este partido ya no acepta apuestas');
+      toast(hadPrev ? '🔒 Partido iniciado — tu apuesta anterior sigue guardada' : '🔒 No se pudo guardar — envía tu apuesta por interno');
     } else {
-      toast('✗ Error al guardar. Intenta de nuevo.');
+      toast('✗ Error al guardar — envía tu apuesta por interno si persiste');
     }
     return;
   }
