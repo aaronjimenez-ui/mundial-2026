@@ -171,7 +171,7 @@
 <header>
   <h1>⚽ MUNDIAL 2026 — <span>Predictor Matemático</span></h1>
   <div class="header-meta">
-    Modelo v5.12: Poisson Bivariado + Dixon-Coles + Elo + GK Quality + Set-Pieces + Squad Depth + BlocBajo<br>
+    Modelo v5.14: Poisson Bivariado + Dixon-Coles + Elo + GK Quality + Set-Pieces + Squad Depth + BlocBajo<br>
     Actualizado: <span id="update-date"></span> · 72 partidos fase de grupos
   </div>
 </header>
@@ -519,10 +519,15 @@ const RESULTS = {
   'Egipto-Nueva Zelanda':      { a: 3, b: 1 },  // MD2 Grupo G | Surman 15' (NZL cabeza); Zico+Salah+Trezeguet (EGY) — 1er WC victory Egipto historia
   'España-Arabia Saudita':     { a: 4, b: 0 },  // MD2 Grupo H | Yamal 10'+Oyarzabal 21'+24'+OG Altambakti 49' — ATK ESP desbloqueada con Yamal titular
   'Uruguay-Cabo Verde':        { a: 2, b: 2 },  // MD2 Grupo H | Araújo+Canobbio (URU); K.Pina FK+H.Varela sub (CPV) — 2° shock CPV del torneo
+  // ── MD2 Grupos I & J — Jun 22 ──
+  'Francia-Irak':              { a: 3, b: 0 },  // MD2 Grupo I | Mbappé 14'+54'+Dembélé; CS Maignan; 100ª cap Mbappé — 15+16 goles WC = empata RÉCORD Klose; tormenta eléctrica 2h delay HT
+  'Noruega-Senegal':           { a: 3, b: 2 },  // MD2 Grupo I | Holmgren Pedersen 43'+Haaland 48'+58'; Sarr 53'+90+3'; NOR clasifica; Haaland 4 WC (= Mbappé, 1 menos que Messi)
+  'Argentina-Austria':         { a: 2, b: 0 },  // MD2 Grupo J | Messi 38'+90+5'; CS Dibu; ARG clasifica 1°; RÉCORD HISTÓRICO 17+18 goles WC (superó Klose 16)
+  'Jordan-Argelia':            { a: 1, b: 2 },  // MD2 Grupo J | Al Rashdan 36' JOR; Benbouali+Gouiri córneres ALG remontada; JOR eliminado; ALG 3pts viva
 };
 
 // Partidos de hoy (fecha actual)
-const TODAY_MATCHES = ['Argentina-Austria', 'Francia-Irak', 'Noruega-Senegal', 'Argelia-Jordan'];  // Jun 22 MD2 Grupos I & J
+const TODAY_MATCHES = ['Portugal-Uzbekistán', 'Colombia-Rep. Dem. Congo', 'Inglaterra-Ghana', 'Panamá-Croacia'];  // Jun 23 MD2 Grupos K & L
 
 function getResult(home, away) {
   return RESULTS[`${home}-${away}`] || RESULTS[`${away}-${home}`] || null;
@@ -786,16 +791,16 @@ const TOURNAMENT_FORM = {
   'Cabo Verde':         { formMult: 1.02, defMult: 0.85, w: 0.14 },  // 0-0 ESP (MD1) + 2-2 URU (MD2) — K.Pina FK+H.Varela sub ATK revelación; DEF sólida (2pts en 2 MD vs ESP+URU)
   'Arabia Saudita':     { formMult: 0.78, defMult: 1.32, w: 0.14 },  // 1-1 URU (MD1) + 0-4 ESP (MD2) — bloque bajo vs débiles OK; vs calidad: 4 goles encajados; OG Altambakti; eliminación inminente
   'Uruguay':            { formMult: 0.95, defMult: 1.18, w: 0.14 },  // 1-1 KSA (MD1) + 2-2 CPV (MD2) — ATK mejoró (Araújo+Canobbio); pero no pudo ganar vs minnow; DEF concedió 2 a CPV
-  // ── Grupo I — Jun 16 ──
-  'Francia':            { formMult: 1.28, defMult: 0.85, w: 0.14 },  // 3-1 vs Senegal — Mbappé×2 (muslo curado confirmado); 3 goles vs DEF Elo-1869 — ATK plena confirmada; DEF sólida (1 gol concedido)
-  'Senegal':            { formMult: 0.78, defMult: 1.32, w: 0.14 },  // 1-3 vs Francia — Mané sin conversión; concedió 3 a favorito Elo+194; defensivamente superados en transición
-  'Irak':               { formMult: 0.72, defMult: 1.42, w: 0.14 },  // 1-4 vs Noruega — ATK escasa vs favorito Elo+297; DEF superada; 1 gol de consolación (Karimi)
-  'Noruega':            { formMult: 1.38, defMult: 0.88, w: 0.14 },  // 4-1 vs Irak — Haaland gol debut WC; goleada vs Elo-1625; setBonus headers confirmado; 1 gol concedido a rival débil
-  // ── Grupo J — Jun 16-17 ──
-  'Argentina':          { formMult: 1.45, defMult: 0.70, w: 0.14 },  // 3-0 vs Argelia — Messi hat-trick (39a); CS Dibu Martínez; dominó sin conceder — mayor exhibición ATK+DEF MD1 Grupos I-J
-  'Argelia':            { formMult: 0.58, defMult: 1.40, w: 0.14 },  // 0-3 vs Argentina — sin respuesta ofensiva vs Elo+368; Mahrez contenido; defensivamente superados todo el partido
-  'Austria':            { formMult: 1.28, defMult: 0.92, w: 0.14 },  // 3-1 vs Jordan — Schmid 21'+OG 76'+Arnautovic pen 90+12'; solvente vs Elo-1648; concedió 1 (Olwan 50')
-  'Jordan':             { formMult: 0.78, defMult: 1.28, w: 0.14 },  // 1-3 vs Austria — Olwan 50' único positivo; defensivamente superados; concedió penal al final
+  // ── Grupo I — actualizado MD2 Jun 22 ──
+  'Francia':            { formMult: 1.42, defMult: 0.78, w: 0.14 },  // 3-1 SEN (MD1) + 3-0 IRQ (MD2) — Mbappé×4+Dembélé; 6 goles en 2 MD; CS Maignan MD2; 16 WC goals (= Klose RÉCORD)
+  'Senegal':            { formMult: 0.85, defMult: 1.45, w: 0.14 },  // 1-3 FRA + 2-3 NOR — Sarr×2 MD2 (ATK mejor que esperado); 0pts ELIMINADO; 6 goles concedidos en 2 MD
+  'Irak':               { formMult: 0.48, defMult: 1.72, w: 0.14 },  // 1-4 NOR (MD1) + 0-3 FRA (MD2) — 1 gol en 2 WC (consolación MD1); 7 concedidos; ELIMINADO
+  'Noruega':            { formMult: 1.45, defMult: 1.02, w: 0.14 },  // 4-1 IRQ (MD1) + 3-2 SEN (MD2) — Haaland 48'+58'; 7 goles en 2 MD; DEF concedió 2 a Senegal = no impenetrable; NOR clasifica
+  // ── Grupo J — actualizado MD2 Jun 22 ──
+  'Argentina':          { formMult: 1.52, defMult: 0.65, w: 0.14 },  // 3-0 ALG (MD1) + 2-0 AUT (MD2) — Messi 5 goles (18 WC RÉCORD histórico); CS en AMBOS MD; dominancia ATK+DEF absoluta
+  'Argelia':            { formMult: 0.80, defMult: 1.25, w: 0.14 },  // 0-3 ARG (MD1) + 2-1 JOR (MD2) — remontada desde 0-1; Benbouali+Gouiri córneres; 3pts viva; depende de set pieces
+  'Austria':            { formMult: 0.98, defMult: 1.12, w: 0.14 },  // 3-1 JOR (MD1, fácil Elo-1648) + 0-2 ARG (MD2) — 0 goles vs calidad; forma real vs rivales serios = desconocida
+  'Jordan':             { formMult: 0.72, defMult: 1.35, w: 0.14 },  // 1-3 AUT (MD1) + 1-2 ALG (MD2) — 2 goles en 2 MD; 5 concedidos; 0pts ELIMINADO
   // ── Grupo K — Jun 17 ──
   'Portugal':           { formMult: 0.68, defMult: 1.30, w: 0.14 },  // 1-1 vs RDC — Ronaldo 2 claras fallidas; Cancelo anulado; crisis conversión vs equipo Elo+~300; 1 gol concedido = alarma DEF (misma crisis que ESP)
   'Rep. Dem. Congo':    { formMult: 1.42, defMult: 0.82, w: 0.14 },  // 1-1 vs POR — Wissa MOTM; 1er gol WC historia; bloque bajo excelente vs favorito europeo — mayor sorpresa ATK Grupo K
