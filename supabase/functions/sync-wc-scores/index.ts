@@ -44,6 +44,37 @@ function getMatchMinute(comp: any, state: string): string | null {
   return `1T · ${minuteStr}`;
 }
 
+// ESPN English team name → DB Spanish name
+const ESPN_TO_DB: Record<string, string> = {
+  'Switzerland': 'Suiza', 'Germany': 'Alemania', 'Netherlands': 'Países Bajos',
+  'Morocco': 'Marruecos', 'South Africa': 'Sudáfrica', 'Saudi Arabia': 'Arabia Saudita',
+  'South Korea': 'Corea del Sur', 'Czech Republic': 'Rep. Checa', 'Czechia': 'Rep. Checa',
+  'DR Congo': 'Rep. D. Congo', 'Congo, DR': 'Rep. D. Congo', 'Democratic Republic of Congo': 'Rep. D. Congo',
+  'New Zealand': 'Nueva Zelanda', 'Ivory Coast': 'Costa de Marfil', "Cote d'Ivoire": 'Costa de Marfil',
+  'Belgium': 'Bélgica', 'Sweden': 'Suecia', 'Tunisia': 'Túnez', 'France': 'Francia',
+  'Brazil': 'Brasil', 'Scotland': 'Escocia', 'Mexico': 'México', 'Japan': 'Japón',
+  'Iran': 'Irán', 'Panama': 'Panamá', 'Turkey': 'Türkiye',
+  'Bosnia and Herzegovina': 'Bosnia y Herz.', 'Bosnia & Herzegovina': 'Bosnia y Herz.',
+  'Bosnia-Herzegovina': 'Bosnia y Herz.', 'Denmark': 'Dinamarca', 'Curacao': 'Curazao',
+  'Algeria': 'Argelia', 'Iraq': 'Irak', 'Haiti': 'Haití', 'Croatia': 'Croacia',
+  'Spain': 'España', 'Norway': 'Noruega', 'Paraguay': 'Paraguay', 'Egypt': 'Egipto',
+  'Uzbekistan': 'Uzbekistán', 'Cape Verde': 'Cabo Verde', 'USA': 'Estados Unidos',
+  'United States': 'Estados Unidos', 'England': 'Inglaterra', 'Canada': 'Canadá',
+};
+
+function toDbName(espnName: string): string {
+  return ESPN_TO_DB[espnName] || espnName;
+}
+
+function pickFromCandidates(candidates: any[], espnHome: string, espnAway: string): any {
+  const dbHome = toDbName(espnHome);
+  const dbAway = toDbName(espnAway);
+  return candidates.find((m: any) => m.home_team === dbHome && m.away_team === dbAway)
+    || candidates.find((m: any) => m.home_team === dbAway && m.away_team === dbHome)
+    || candidates.find((m: any) => m.home_team === dbHome || m.away_team === dbAway || m.home_team === dbAway || m.away_team === dbHome)
+    || null;
+}
+
 async function syncScores() {
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -68,24 +99,33 @@ async function syncScores() {
 
     const home = comp.competitors.find((c: any) => c.homeAway === "home");
     const away = comp.competitors.find((c: any) => c.homeAway === "away");
+    const espnHome: string = home?.team?.displayName || home?.team?.name || '';
+    const espnAway: string = away?.team?.displayName || away?.team?.name || '';
 
     const isFinished = state === "post";
     const homeScore = parseInt(home?.score ?? "0") || 0;
     const awayScore = parseInt(away?.score ?? "0") || 0;
     const matchMinute = getMatchMinute(comp, state);
 
-    // Try exact match first, then fuzzy within ±5 minutes
+    // Lookup: exact by date → if multiple, disambiguate by team name → fuzzy window fallback
     let dbMatch: any = null;
 
     const exactResult = await supabase
       .from("mundial_matches")
-      .select("id, is_finished, home_score, away_score, match_minute")
-      .eq("match_date", matchDate)
-      .maybeSingle();
+      .select("id, is_finished, home_score, away_score, match_minute, home_team, away_team")
+      .eq("match_date", matchDate);
 
     if (!exactResult.error && exactResult.data) {
-      dbMatch = exactResult.data;
-    } else {
+      if (exactResult.data.length === 1) {
+        dbMatch = exactResult.data[0];
+      } else if (exactResult.data.length > 1) {
+        // Concurrent matches — disambiguate by team name
+        dbMatch = pickFromCandidates(exactResult.data, espnHome, espnAway);
+        if (dbMatch) errors.push(`multiMatch: ${event.name} -> ${dbMatch.home_team} vs ${dbMatch.away_team}`);
+      }
+    }
+
+    if (!dbMatch) {
       const windowStart = new Date(new Date(event.date).getTime() - 5 * 60 * 1000).toISOString();
       const windowEnd   = new Date(new Date(event.date).getTime() + 5 * 60 * 1000).toISOString();
 
@@ -93,12 +133,13 @@ async function syncScores() {
         .from("mundial_matches")
         .select("id, is_finished, home_score, away_score, match_minute, home_team, away_team")
         .gte("match_date", windowStart)
-        .lte("match_date", windowEnd)
-        .maybeSingle();
+        .lte("match_date", windowEnd);
 
-      if (!fuzzyResult.error && fuzzyResult.data) {
-        dbMatch = fuzzyResult.data;
-        errors.push(`fuzzyMatch: ${event.name} -> ${dbMatch.home_team} vs ${dbMatch.away_team}`);
+      if (!fuzzyResult.error && fuzzyResult.data && fuzzyResult.data.length > 0) {
+        dbMatch = fuzzyResult.data.length === 1
+          ? fuzzyResult.data[0]
+          : pickFromCandidates(fuzzyResult.data, espnHome, espnAway);
+        if (dbMatch) errors.push(`fuzzyMatch: ${event.name} -> ${dbMatch.home_team} vs ${dbMatch.away_team}`);
       }
     }
 
