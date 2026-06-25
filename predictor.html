@@ -171,7 +171,7 @@
 <header>
   <h1>⚽ MUNDIAL 2026 — <span>Predictor Matemático</span></h1>
   <div class="header-meta">
-    Modelo v5.15: Poisson Bivariado + Dixon-Coles + Elo + GK Quality + Set-Pieces + Squad Depth + BlocBajo<br>
+    Modelo v5.16: Poisson Bivariado + Dixon-Coles + Elo + GK Quality + Set-Pieces + Squad Depth + BlocBajo<br>
     Actualizado: <span id="update-date"></span> · 72 partidos fase de grupos
   </div>
 </header>
@@ -529,10 +529,18 @@ const RESULTS = {
   'Colombia-Rep. Dem. Congo': { a: 1, b: 0 },  // MD2 Grupo K | Muñoz 76' (desvío al palo corto); COL clasifica 1°; RDC resistió bloque bajo 76' — ELIMINADO 0pts
   'Inglaterra-Ghana':         { a: 0, b: 0 },  // MD2 Grupo L | ENG 19 tiros; O'Reilly poste 86'; GHA: Adu 79' 1v1 fallida (Konsa cobertura crucial); 4pts cada uno; ambos vivos para MD3
   'Panamá-Croacia':           { a: 0, b: 1 },  // MD2 Grupo L | Budimir 54' sub (tap-in asist Stanisic); Livaković CS; PAN ELIMINADO 0pts; CRO 3pts viva
+  // ── MD3 Grupos A & B — Jun 24 ──
+  'México-Chequia':              { a: 3, b: 0 },  // MD3 Grupo A | MEX 9pts CLASIFICADO 1°; CZE ELIMINADO 4pts (GD −2 < RSA GD 0)
+  'Sudáfrica-Corea del Sur':    { a: 1, b: 0 },  // MD3 Grupo A | RSA CLASIFICADO 2° (4pts, GD 0); KOR 0 goles en 3 WC, 0pts ELIMINADO
+  'Canadá-Suiza':               { a: 1, b: 2 },  // MD3 Grupo B | Vargas+Manzambi (SUI); David sub (CAN) — SUI 1° 7pts; CAN 2° 4pts (GD +5 > BIH −1)
+  'Bosnia-Herzegovina-Catar':   { a: 3, b: 1 },  // MD3 Grupo B | BIH mejor partido (3 goles) pero ELIMINADO 4pts (GD −1); QAT 1pt 10GA ELIMINADO
+  // ── MD3 Grupo C — Jun 24 ──
+  'Brasil-Escocia':             { a: 3, b: 0 },  // MD3 Grupo C | BRA 1° 7pts (GD +6); CS Alisson 2do consec.; SCO ELIMINADO 3pts (0 goles MD2+MD3)
+  'Marruecos-Haití':            { a: 4, b: 2 },  // MD3 Grupo C | MAR 2° 7pts (GD +3 < BRA +6); HAI primera vez marcó 2 goles en WC historia — 0pts ELIMINADO
 };
 
 // Partidos de hoy (fecha actual)
-const TODAY_MATCHES = ['México-Chequia', 'Sudáfrica-Corea del Sur', 'Canadá-Suiza', 'Bosnia-Herzegovina-Catar', 'Brasil-Escocia', 'Marruecos-Haití'];  // Jun 24 MD3 Grupos A, B & C
+const TODAY_MATCHES = ['EE.UU.-Turquía', 'Paraguay-Australia', 'Alemania-Ecuador', 'Curazao-Costa de Marfil', 'Países Bajos-Túnez', 'Japón-Suecia'];  // Jun 25 MD3 Grupos D, E & F
 
 function getResult(home, away) {
   return RESULTS[`${home}-${away}`] || RESULTS[`${away}-${home}`] || null;
@@ -756,21 +764,21 @@ const TEAM_ADJUSTMENTS = {
 // Peso progresivo: w=0.07 MD1 → 0.14 MD2 → 0.20 MD3+ (Baker & McHale 2015 — mínimo 4 obs para 20%)
 // ═══════════════════════════════════════════════════
 const TOURNAMENT_FORM = {
-  // ── Grupo A — actualizado MD1 (correg.) + MD2 Jun 18 ──
-  'México':             { formMult: 1.08, defMult: 0.88, w: 0.14 },  // 1-0 RSA + 1-0 KOR — 2 CS consecutivos; ATK funcional, clasif. asegurada 6pts
-  'Sudáfrica':          { formMult: 0.90, defMult: 1.12, w: 0.14 },  // 0-1 MEX + 1-1 CZE — Mokoena pen 83' rescató punto; 1pt; mejor de lo esperado tras corrección
-  'Corea del Sur':      { formMult: 0.62, defMult: 1.12, w: 0.14 },  // 0-1 CZE + 0-1 MEX — 0 goles en 2 WC; eliminación inminente; ATK nula confirmada
-  'Chequia':            { formMult: 1.08, defMult: 0.95, w: 0.14 },  // 1-0 KOR + 1-1 RSA — 4pts; Schick MD2 min5; DEF sólida (1 gol concedido); líder virtual G2
-  // ── Grupo B — actualizado MD2 Jun 18 ──
-  'Canadá':             { formMult: 1.28, defMult: 0.90, w: 0.14 },  // 1-1 Bosnia + 6-0 Catar — David hat-trick; ATK liberada vs rival Elo-1450; 4pts
-  'Bosnia-Herzegovina': { formMult: 0.85, defMult: 1.25, w: 0.14 },  // 1-1 Canadá + 1-4 Suiza — DEF superada (4 goles MD2); Kolasinac expuesto
-  'Catar':              { formMult: 0.55, defMult: 1.70, w: 0.14 },  // 1-1 SUI (Abunada heroico MOTM) + 0-6 CAN — ATK cero; DEF derrumbada MD2; eliminado
-  'Suiza':              { formMult: 1.22, defMult: 0.90, w: 0.14 },  // 1-1 Catar + 4-1 Bosnia — Vargas+Xhaka pen; ATK desbloqueada MD2; Kobel 4pts
-  // ── Grupo C — actualizado MD2 Jun 19 ──
-  'Brasil':             { formMult: 1.10, defMult: 0.88, w: 0.14 },  // 1-1 MAR + 3-0 HAI — Cunha×2+Vinícius; ATK desbloqueada MD2 (HAI Elo-1502); CS Alisson confirmado MD2; clasif. segura
-  'Marruecos':          { formMult: 1.18, defMult: 0.88, w: 0.14 },  // 1-1 BRA + 1-0 SCO — Saibari ×2 (MD1+MD2); 4pts; CS vs SCO; bloque bajo organizado confirmado 2 partidos
-  'Haití':              { formMult: 0.62, defMult: 1.35, w: 0.14 },  // 0-1 SCO + 0-3 BRA — 0 goles en 2 WC; eliminado; ATK crisis total; concedió 4 goles (1 SCO + 3 BRA)
-  'Escocia':            { formMult: 0.85, defMult: 1.02, w: 0.14 },  // 1-0 HAI + 0-1 MAR — ATK bloqueada por bloque bajo MAR; concedió a Saibari 2' MD2; 3pts — necesita MD3
+  // ── Grupo A — actualizado MD3 Jun 24 (w:0.20) ──
+  'México':             { formMult: 1.45, defMult: 0.62, w: 0.20 },  // 3-0 CZE MD3 — PERFECTA: 9pts, 5GF, 0GA, CS en los 3 MD; ATK explosiva MD3; DEF élite del grupo
+  'Sudáfrica':          { formMult: 0.92, defMult: 1.00, w: 0.20 },  // 1-0 KOR MD3 — CLASIFICADO 2° (4pts, GD 0); CS vs KOR; mejor de lo esperado vs eliminados KOR
+  'Corea del Sur':      { formMult: 0.35, defMult: 1.28, w: 0.20 },  // 0-1 RSA MD3 — 0 goles en 3 WC confirmado; ATK nula absoluta; 0pts ELIMINADO
+  'Chequia':            { formMult: 0.78, defMult: 1.32, w: 0.20 },  // 0-3 MEX MD3 — goleada; ELIMINADO 4pts GD −2; DEF expuesta a ATK intensa de MEX
+  // ── Grupo B — actualizado MD3 Jun 24 (w:0.20) ──
+  'Canadá':             { formMult: 1.18, defMult: 1.05, w: 0.20 },  // 1-2 SUI MD3 — CLASIFICADO 2° (4pts, GD +5); David sub gol; ATK fuerte (8GF total) pero DEF cedió a SUI
+  'Bosnia-Herzegovina': { formMult: 0.98, defMult: 1.15, w: 0.20 },  // 3-1 QAT MD3 — mejor partido; ELIMINADO 4pts GD −1; ATK reactiva vs minnow
+  'Catar':              { formMult: 0.50, defMult: 1.82, w: 0.20 },  // 1-3 BIH MD3 — 10 goles concedidos en 3 WC; 1pt; DEF peor del torneo; ELIMINADO
+  'Suiza':              { formMult: 1.38, defMult: 0.82, w: 0.20 },  // 2-1 CAN MD3 — CLASIFICADO 1° (7pts); 3 victorias; Vargas+Manzambi MD3; Kobel sólido (3GA en 3MD)
+  // ── Grupo C — actualizado MD3 Jun 24 (w:0.20) ──
+  'Brasil':             { formMult: 1.32, defMult: 0.72, w: 0.20 },  // 3-0 SCO MD3 — 1° (7pts GD +6); CS Alisson ×2 (MD2+MD3); 7GF, 1GA (solo vs MAR MD1); ATK constante
+  'Marruecos':          { formMult: 1.38, defMult: 0.95, w: 0.20 },  // 4-2 HAI MD3 — 2° (7pts GD +3); 4 goles MD3!; concedió 2 a HAI (sorpresa DEF); bloque bajo no aplicó vs minnow
+  'Haití':              { formMult: 0.68, defMult: 1.42, w: 0.20 },  // 2-4 MAR MD3 — 2 goles primera vez en WC historia; 0pts 8GA ELIMINADO; ATK levemente mejor de lo esperado
+  'Escocia':            { formMult: 0.62, defMult: 1.35, w: 0.20 },  // 0-3 BRA MD3 — 0 goles en MD2+MD3; 3pts ELIMINADO; crisis ATK confirmada vs rivales de calidad
   // ── Grupo D — actualizado MD2 Jun 19 ──
   'EE.UU.':             { formMult: 1.18, defMult: 0.80, w: 0.14 },  // 4-1 PAR + 2-0 AUS — gana grupo 6pts; 2 CS consecutivos; dominancia total como anfitrión; ATK constante
   'Paraguay':           { formMult: 0.95, defMult: 1.05, w: 0.14 },  // 1-4 EE.UU. + 1-0 TUR — Galarza 64" gol más rápido torneo; rebote notable; CS vs TUR (rival con 0 goles WC)
