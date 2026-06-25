@@ -171,7 +171,7 @@
 <header>
   <h1>⚽ MUNDIAL 2026 — <span>Predictor Matemático</span></h1>
   <div class="header-meta">
-    Modelo v5.16: Poisson Bivariado + Dixon-Coles + Elo + GK Quality + Set-Pieces + Squad Depth + BlocBajo<br>
+    Modelo v5.17: Poisson Bivariado + Dixon-Coles + Elo + GK Quality + Set-Pieces + Squad Depth + BlocBajo + PoorFormDamp<br>
     Actualizado: <span id="update-date"></span> · 72 partidos fase de grupos
   </div>
 </header>
@@ -180,7 +180,7 @@
   <div class="method-tag"><strong>MODELO:</strong> Poisson Bivariado</div>
   <div class="method-tag"><strong>CORRECCIÓN:</strong> Dixon-Coles (ρ=-0.07, calibrado WC 2014-2022)</div>
   <div class="method-tag"><strong>RATINGS:</strong> xGF/xGA por equipo + ajuste strength-of-schedule por confederación</div>
-  <div class="method-tag"><strong>BLEND:</strong> 65% xG model + 35% Elo + dampening doble (underdog ×0.90 siempre; FAV_DAMP ×0.85 si underdog.blocBajo=true sin límite de gap — fix v5.9 ESP-CPV (gap 541)) + draw prior ×1.45 (8 draws de 16 partidos MD1=50% — recalibrado de ×1.35; anomalía histórica WC2026)</div>
+  <div class="method-tag"><strong>BLEND:</strong> 65% xG model + 35% Elo + dampening triple (underdog ×0.90 siempre; FAV_DAMP ×0.85 si underdog.blocBajo=true; POOR_FORM_DAMP ×0.88 si favorito formMult&lt;0.48 — fix v5.17 KOR-RSA) + draw prior ×1.35 (recalibrado de ×1.45 tras MD2)</div>
   <div class="method-tag"><strong>LOCAL:</strong> MEX +0.28 / USA +0.28 / CAN +0.18 (Pollard 2006 + calibración MD1)</div>
   <div class="method-tag"><strong>FORMA:</strong> w progresivo: 7% MD1 → <strong>14% MD2 ✓</strong> → 20% MD3 in-tournament (Baker &amp; McHale 2015)</div>
   <div class="method-tag"><strong>⚡ FATIGA:</strong> restDaysFactor automático — 4d ×0.97 ATK · 3d ×0.94 ATK (Dupont et al. 2010; afecta MD3 Grupos I/K/L)</div>
@@ -249,6 +249,8 @@ const MAX_G = 8;        // Máximo goles por equipo en la matriz
 const ELO_SCALE = 950;  // Escala Elo→λ ampliada: WC tiene más varianza que clasif (Koopman & Lit 2019)
 const DRAW_BIAS = 1.35; // Prior empate WC: 9 draws en 32 partidos MD1+MD2 (28%) = promedio histórico — anomalía MD1 autocorregida en MD2 (1/8 draws); recalibrado de 1.45
 const FAV_DAMP = 0.85;  // Favorito vs bloque bajo: ATK reducida 15% cuando Elo gap > 100 (Brasil-MAR, TUR-AUS)
+const POOR_FORM_DAMP = 0.88;      // Favorito con ATK rota in-WC (formMult < umbral): reduce xG 12% adicional
+const POOR_FORM_THRESHOLD = 0.48; // Umbral: KOR 0.35, QAT 0.50, TUN 0.28 — equipos que no convierten pese a Elo
 // Ventaja local diferenciada (Pollard 2006): tradición futbolística + capacidad estadio
 const HOME_BONUS_HOST = { 'México': 0.28, 'EE.UU.': 0.28, 'Canadá': 0.18 };  // Incluye crowd pressure + ventaja árbitro local (CONCACAF tiene 4 refs anfitriones en el pool; Pollard 2006)
 
@@ -295,6 +297,16 @@ function getLambdas(teamA, teamB, homeBonus) {
   if (underdogProf.blocBajo) {
     if (eloGap > 79) xgLA *= FAV_DAMP;
     else if (eloGap < -79) xgLB *= FAV_DAMP;
+  }
+
+  // Poor-form favorite dampening: Elo-favorito con formMult < 0.48 = ATK confirmada rota in-tournament
+  // Evidencia MD3 A/B/C: KOR (formMult 0.35) predijo favorito 55% vs RSA → real 0-1 (mayor error backtesting)
+  // Fix v5.17: reduce xG 12% adicional del favorito cuando su forma real en WC es extremadamente baja
+  const favTeam = eloGap > 0 ? teamA : teamB;
+  const favFormData = TOURNAMENT_FORM[favTeam];
+  if (favFormData && favFormData.formMult < POOR_FORM_THRESHOLD && Math.abs(eloGap) > 79) {
+    if (eloGap > 0) xgLA *= POOR_FORM_DAMP;
+    else xgLB *= POOR_FORM_DAMP;
   }
 
   // Elo fallback (35% blend)
