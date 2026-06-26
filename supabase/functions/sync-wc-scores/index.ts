@@ -4,12 +4,23 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const ADMIN_EMAIL = "jimenezaaron5@gmail.com";
 const CRON_SECRET = "mnd26cron-be84f946f3623b9c";
 
-function getEspnUrl(): string {
-  const d = new Date();
-  const yyyymmdd = d.getUTCFullYear().toString()
+function toEspnDateStr(d: Date): string {
+  return d.getUTCFullYear().toString()
     + String(d.getUTCMonth() + 1).padStart(2, '0')
     + String(d.getUTCDate()).padStart(2, '0');
-  return `https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?dates=${yyyymmdd}`;
+}
+
+// Returns URLs to fetch from ESPN. When UTC hour < 4, also includes yesterday
+// so matches that kicked off at 23:xx UTC and cross midnight are still tracked.
+function getEspnUrls(): string[] {
+  const now = new Date();
+  const base = 'https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?dates=';
+  const urls = [base + toEspnDateStr(now)];
+  if (now.getUTCHours() < 4) {
+    const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    urls.push(base + toEspnDateStr(yesterday));
+  }
+  return urls;
 }
 
 function getMatchMinute(comp: any, state: string): string | null {
@@ -80,14 +91,19 @@ async function syncScores() {
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-  const apiRes = await fetch(getEspnUrl());
-  if (!apiRes.ok) return { error: "ESPN API error", status: apiRes.status };
-
-  const data = await apiRes.json();
-  const events: any[] = data.events || [];
-
+  const espnUrls = getEspnUrls();
+  const seenIds = new Set<string>();
+  const events: any[] = [];
+  for (const url of espnUrls) {
+    const apiRes = await fetch(url);
+    if (!apiRes.ok) continue;
+    const data = await apiRes.json();
+    for (const ev of (data.events || [])) {
+      if (!seenIds.has(ev.id)) { seenIds.add(ev.id); events.push(ev); }
+    }
+  }
   const relevant = events.filter((e: any) => e.competitions[0].status.type.state !== "pre");
-  if (relevant.length === 0) return { success: true, totalToday: events.length, updated: 0, skipped: events.length, notFound: 0, errors: [] };
+  if (relevant.length === 0) return { success: true, dates: espnUrls.map(u => u.slice(-8)), totalToday: events.length, updated: 0, skipped: events.length, notFound: 0, errors: [] };
 
   let updated = 0, skipped = 0, notFound = 0;
   const errors: string[] = [];
@@ -168,7 +184,7 @@ async function syncScores() {
     else updated++;
   }
 
-  return { success: true, totalToday: events.length, relevant: relevant.length, updated, skipped, notFound, errors };
+  return { success: true, dates: espnUrls.map(u => u.slice(-8)), totalToday: events.length, relevant: relevant.length, updated, skipped, notFound, errors };
 }
 
 Deno.serve(async (req: Request) => {
