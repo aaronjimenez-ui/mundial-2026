@@ -1069,7 +1069,7 @@ async function savePred(matchId) {
 
   const displayName = getMyDisplayName();
 
-  const { error } = await sb.from('mundial_predictions').upsert(
+  const { data: saved, error } = await sb.from('mundial_predictions').upsert(
     {
       user_id: currentUser.id,
       display_name: displayName,
@@ -1079,20 +1079,18 @@ async function savePred(matchId) {
       points: 0
     },
     { onConflict: 'user_id,match_id' }
-  );
+  ).select('id');
 
   btn.disabled = false; btn.textContent = orig;
   btn.style.background = ''; btn.style.color = '';
 
   if (error) {
-    /* Handle RLS lock violation */
+    /* Handle RLS lock violation (explicit error path: INSERT WITH CHECK failed) */
     const isRLS = error.code === '42501' ||
       (error.message || '').toLowerCase().includes('row-level') ||
       (error.message || '').toLowerCase().includes('policy');
-    const phElErr = document.getElementById(`ph-${matchId}`);
-    const paElErr = document.getElementById(`pa-${matchId}`);
-    if (phElErr) { phElErr.classList.remove('saved'); phElErr.classList.add('unsaved'); }
-    if (paElErr) { paElErr.classList.remove('saved'); paElErr.classList.add('unsaved'); }
+    if (phEl) { phEl.classList.remove('saved'); phEl.classList.add('unsaved'); }
+    if (paEl) { paEl.classList.remove('saved'); paEl.classList.add('unsaved'); }
     sb.from('mundial_save_logs').insert({
       user_id: currentUser.id, display_name: getMyDisplayName(),
       match_id: matchId, pred_home: ph, pred_away: pa,
@@ -1106,6 +1104,20 @@ async function savePred(matchId) {
     } else {
       toast('✗ Error al guardar — envía tu apuesta por interno si persiste');
     }
+    return;
+  }
+
+  /* Detect silent RLS block: UPDATE USING filtered the row → no error but 0 rows saved */
+  if (!saved || saved.length === 0) {
+    const hadPrev = !!userPreds[matchId];
+    if (phEl) { phEl.classList.remove('saved'); phEl.classList.add('unsaved'); }
+    if (paEl) { paEl.classList.remove('saved'); paEl.classList.add('unsaved'); }
+    sb.from('mundial_save_logs').insert({
+      user_id: currentUser.id, display_name: getMyDisplayName(),
+      match_id: matchId, pred_home: ph, pred_away: pa,
+      result: 'silent_rls', lock_label: lock?.label || null
+    });
+    toast(hadPrev ? '🔒 Partido iniciado — tu apuesta anterior sigue guardada' : '🔒 No se pudo guardar — envía tu apuesta por interno');
     return;
   }
 
