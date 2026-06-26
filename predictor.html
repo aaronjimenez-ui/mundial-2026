@@ -171,7 +171,7 @@
 <header>
   <h1>⚽ MUNDIAL 2026 — <span>Predictor Matemático</span></h1>
   <div class="header-meta">
-    Modelo v5.17: Poisson Bivariado + Dixon-Coles + Elo + GK Quality + Set-Pieces + Squad Depth + BlocBajo + PoorFormDamp<br>
+    Modelo v5.18: Poisson Bivariado + Dixon-Coles + Elo + GK Quality + Set-Pieces + Squad Depth + BlocBajo + PoorFormDamp<br>
     Actualizado: <span id="update-date"></span> · 72 partidos fase de grupos
   </div>
 </header>
@@ -182,7 +182,7 @@
   <div class="method-tag"><strong>RATINGS:</strong> xGF/xGA por equipo + ajuste strength-of-schedule por confederación</div>
   <div class="method-tag"><strong>BLEND:</strong> 65% xG model + 35% Elo + dampening triple (underdog ×0.90 siempre; FAV_DAMP ×0.85 si underdog.blocBajo=true; POOR_FORM_DAMP ×0.88 si favorito formMult&lt;0.48 — fix v5.17 KOR-RSA) + draw prior ×1.35 (recalibrado de ×1.45 tras MD2)</div>
   <div class="method-tag"><strong>LOCAL:</strong> MEX +0.28 / USA +0.28 / CAN +0.18 (Pollard 2006 + calibración MD1)</div>
-  <div class="method-tag"><strong>FORMA:</strong> w progresivo: 7% MD1 → <strong>14% MD2 ✓</strong> → 20% MD3 in-tournament (Baker &amp; McHale 2015)</div>
+  <div class="method-tag"><strong>FORMA:</strong> w progresivo: 7% MD1 → <strong>14% MD2 ✓</strong> → <strong>20% MD3 ✓</strong> (Baker &amp; McHale 2015)</div>
   <div class="method-tag"><strong>⚡ FATIGA:</strong> restDaysFactor automático — 4d ×0.97 ATK · 3d ×0.94 ATK (Dupont et al. 2010; afecta MD3 Grupos I/K/L)</div>
   <div class="method-tag"><strong>🧤 GK:</strong> gkFactor 0.91–1.10 — portero élite reduce xGA efectivo (Alisson 0.91, E.Martínez 0.93, Abunada 0.95)</div>
   <div class="method-tag"><strong>🎯 BP:</strong> setBonus goles/partido de balón parado sobre promedio (Argentina +0.08, Noruega +0.07, Alemania +0.04)</div>
@@ -549,10 +549,19 @@ const RESULTS = {
   // ── MD3 Grupo C — Jun 24 ──
   'Brasil-Escocia':             { a: 3, b: 0 },  // MD3 Grupo C | BRA 1° 7pts (GD +6); CS Alisson 2do consec.; SCO ELIMINADO 3pts (0 goles MD2+MD3)
   'Marruecos-Haití':            { a: 4, b: 2 },  // MD3 Grupo C | MAR 2° 7pts (GD +3 < BRA +6); HAI primera vez marcó 2 goles en WC historia — 0pts ELIMINADO
+  // ── MD3 Grupo D — Jun 25 ──
+  'EE.UU.-Turquía':             { a: 2, b: 3 },  // MD3 Grupo D | Trusty 3'+Berhalter 49' (USA); Güler 10'+Kökcü 31'+Ayhan 90'+8' (TUR) — UPSET: TUR 1er victoria WC; USA CLASIFICADO 1° (6pts) pese a derrota; TUR ELIMINADO 3pts
+  'Paraguay-Australia':          { a: 0, b: 0 },  // MD3 Grupo D | AUS CLASIFICADO 2° (4pts, GD 0) vs PAR ELIMINADO (4pts, GD −2); ambos sin goles
+  // ── MD3 Grupo E — Jun 25 ──
+  'Alemania-Ecuador':            { a: 1, b: 2 },  // MD3 Grupo E | Sane 2' (ALE); Angulo 9'+Plata 77' (ECU) — UPSET MÁXIMO: ECU 1er victoria WC (0 goles previos MD1+MD2); GER CLASIFICADO 1° (6pts, GD +7); CIV 2° (6pts, GD +2); ECU avanza 3° mejor (4pts)
+  'Curazao-Costa de Marfil':     { a: 0, b: 2 },  // MD3 Grupo E | Pépé 7'+64' (CIV) — CIV 1er KO en historia WC; CUR ELIMINADO 1pt
+  // ── MD3 Grupo F — Jun 25 ──
+  'Países Bajos-Túnez':          { a: 3, b: 1 },  // MD3 Grupo F | NED 1° (7pts, GD +6); TUN ELIMINADO 0pts (2GF, 12GA — peor DEF del torneo)
+  'Japón-Suecia':                { a: 1, b: 1 },  // MD3 Grupo F | Maeda 56' (JAP); Elanga 62' (SWE) — JAP 2° (5pts); SWE avanza 3° mejor (4pts)
 };
 
 // Partidos de hoy (fecha actual)
-const TODAY_MATCHES = ['EE.UU.-Turquía', 'Paraguay-Australia', 'Alemania-Ecuador', 'Curazao-Costa de Marfil', 'Países Bajos-Túnez', 'Japón-Suecia'];  // Jun 25 MD3 Grupos D, E & F
+const TODAY_MATCHES = ['Bélgica-Nueva Zelanda', 'Egipto-Irán', 'España-Uruguay', 'Cabo Verde-Arabia Saudita'];  // Jun 26 MD3 Grupos G & H
 
 function getResult(home, away) {
   return RESULTS[`${home}-${away}`] || RESULTS[`${away}-${home}`] || null;
@@ -791,21 +800,21 @@ const TOURNAMENT_FORM = {
   'Marruecos':          { formMult: 1.38, defMult: 0.95, w: 0.20 },  // 4-2 HAI MD3 — 2° (7pts GD +3); 4 goles MD3!; concedió 2 a HAI (sorpresa DEF); bloque bajo no aplicó vs minnow
   'Haití':              { formMult: 0.68, defMult: 1.42, w: 0.20 },  // 2-4 MAR MD3 — 2 goles primera vez en WC historia; 0pts 8GA ELIMINADO; ATK levemente mejor de lo esperado
   'Escocia':            { formMult: 0.62, defMult: 1.35, w: 0.20 },  // 0-3 BRA MD3 — 0 goles en MD2+MD3; 3pts ELIMINADO; crisis ATK confirmada vs rivales de calidad
-  // ── Grupo D — actualizado MD2 Jun 19 ──
-  'EE.UU.':             { formMult: 1.18, defMult: 0.80, w: 0.14 },  // 4-1 PAR + 2-0 AUS — gana grupo 6pts; 2 CS consecutivos; dominancia total como anfitrión; ATK constante
-  'Paraguay':           { formMult: 0.95, defMult: 1.05, w: 0.14 },  // 1-4 EE.UU. + 1-0 TUR — Galarza 64" gol más rápido torneo; rebote notable; CS vs TUR (rival con 0 goles WC)
-  'Australia':          { formMult: 0.95, defMult: 0.95, w: 0.14 },  // 2-0 TUR (defensiva WC-level) + 0-2 USA — ATK sin gol vs rival de calidad; DEF cedió vs anfitrión; forma mixta
-  'Turquía':            { formMult: 0.52, defMult: 1.38, w: 0.14 },  // 0-2 AUS + 0-1 PAR — ELIMINADO 0pts; 0 goles en 2 WC; concedió en 64"; ATK confirmada rota; DEF frágil (3 concedidos)
-  // ── Grupo E — actualizado MD2 Jun 20-21 ──
-  'Alemania':           { formMult: 1.22, defMult: 0.95, w: 0.14 },  // 7-1 CUR (MD1) + 2-1 CIV (MD2) — Undav sub 2 goles MD2; ATK constante; DEF concedió 1 vs CIV (Kessie 30')
-  'Curazao':            { formMult: 0.72, defMult: 1.25, w: 0.14 },  // 1-7 ALE (MD1) + 0-0 ECU (MD2) — CS sorpresa vs ECU; DEF mejoró vs rival débil; ATK cero en 2 partidos; eliminado
-  'Costa de Marfil':    { formMult: 1.12, defMult: 1.02, w: 0.14 },  // 1-0 ECU (MD1) + 1-2 ALE (MD2) — Kessie 30' MD2; scoring consistente 2 MD; concedió 2 tardíos vs ALE
-  'Ecuador':            { formMult: 0.68, defMult: 0.95, w: 0.14 },  // 0-1 CIV (MD1) + 0-0 CUR (MD2) — 0 goles en 2 partidos WC; ELIMINADO; CS vs CUR única positiva DEF
-  // ── Grupo F — actualizado MD2 Jun 20-21 ──
-  'Países Bajos':       { formMult: 1.25, defMult: 1.08, w: 0.14 },  // 2-2 JAP (MD1) + 5-1 SWE (MD2) — Brobbey×2+Gakpo×2+Summerville; ATK MASIVA desbloqueada; aún concedió 1 a SWE
-  'Japón':              { formMult: 1.35, defMult: 0.88, w: 0.14 },  // 2-2 NED (MD1) + 4-0 TUN (MD2) — Kamada 4'+Ueda×2+Ito 69'; ATK confirmada sin Mitoma; CS Suzuki MD2
-  'Suecia':             { formMult: 0.72, defMult: 1.52, w: 0.14 },  // 5-1 TUN (MD1 outlier) + 1-5 NED (MD2) — MD1 era fluke; vs rivales de calidad: ATK nula, DEF expuesta; eliminado
-  'Túnez':              { formMult: 0.28, defMult: 1.65, w: 0.14 },  // 1-5 SWE (MD1) + 0-4 JAP (MD2) — 1 gol en 2 partidos (consolación); 9 goles concedidos; ELIMINADO
+  // ── Grupo D — actualizado MD3 Jun 25 (w:0.20) ──
+  'EE.UU.':             { formMult: 1.12, defMult: 0.92, w: 0.20 },  // 4-1 PAR + 2-0 AUS + 2-3 TUR MD3 (UPSET) — CLASIFICADO 1° (6pts, 8GF 4GA); Pulisic ❌; concedió 3 a TUR (Turner vulnerable) — DEF expuesta
+  'Paraguay':           { formMult: 0.90, defMult: 1.05, w: 0.20 },  // 1-4 EE.UU. + 1-0 TUR + 0-0 AUS MD3 — ELIMINADO (4pts, GD −2); Almirón ❌ susp MD3; CS vs AUS pero ATK plana todo el torneo
+  'Australia':          { formMult: 0.85, defMult: 0.88, w: 0.20 },  // 2-0 TUR + 0-2 USA + 0-0 PAR MD3 — CLASIFICADO 2° (4pts, GD 0); ATK aún sin gol vs calidad (OG Burgess único); 2 CS parciales
+  'Turquía':            { formMult: 0.65, defMult: 1.32, w: 0.20 },  // 0-2 AUS + 0-1 PAR + 3-2 USA MD3 — ELIMINADO (3pts); primer goles WC en MD3 (Güler+Kökcü+Ayhan); ATK tardía real; DEF frágil
+  // ── Grupo E — actualizado MD3 Jun 25 (w:0.20) ──
+  'Alemania':           { formMult: 1.10, defMult: 1.05, w: 0.20 },  // 7-1 CUR + 2-1 CIV + 1-2 ECU MD3 (UPSET) — CLASIFICADO 1° (6pts, GD +7); Sane 2' pero remontada ECU; DEF más expuesta de lo esperado en MD3
+  'Curazao':            { formMult: 0.58, defMult: 1.32, w: 0.20 },  // 1-7 ALE + 0-0 ECU + 0-2 CIV MD3 — ELIMINADO 1pt; 1GF en 3 WC (solo vs ECU MD2); 9GA total
+  'Costa de Marfil':    { formMult: 1.18, defMult: 0.98, w: 0.20 },  // 1-0 ECU + 1-2 ALE + 2-0 CUR MD3 (Pépé×2) — CLASIFICADO 2° (6pts, GD +2); 1er KO historia WC; ATK consistente; DEF mejoró
+  'Ecuador':            { formMult: 0.82, defMult: 0.95, w: 0.20 },  // 0-1 CIV + 0-0 CUR + 2-1 GER MD3 (UPSET: Angulo 9'+Plata 77') — avanza 3° mejor (4pts, GD 0); 0→2 goles en MD3; ATK real cuando rival no bloquea bajo
+  // ── Grupo F — actualizado MD3 Jun 25 (w:0.20) ──
+  'Países Bajos':       { formMult: 1.38, defMult: 1.05, w: 0.20 },  // 2-2 JAP + 5-1 SWE + 3-1 TUN MD3 — 1° (7pts, 10GF 4GA, GD +6); ATK ÉLITE confirmada en 3 MD; aún concedió 1 a TUN (peor equipo)
+  'Japón':              { formMult: 1.25, defMult: 0.90, w: 0.20 },  // 2-2 NED + 4-0 TUN + 1-1 SWE MD3 (Maeda 56') — 2° (5pts, 7GF 3GA); ATK constante en todos los MD; concedió Elanga 62' a SWE
+  'Suecia':             { formMult: 0.82, defMult: 1.42, w: 0.20 },  // 5-1 TUN (outlier MD1) + 1-5 NED + 1-1 JAP MD3 (Elanga 62') — avanza 3° mejor (4pts, GD 0); ATK solo vs débiles; DEF mejoró MD3
+  'Túnez':              { formMult: 0.25, defMult: 1.72, w: 0.20 },  // 1-5 SWE + 0-4 JAP + 1-3 NED MD3 — ELIMINADO 0pts (2GF, 12GA — peor DEF del torneo); formMult confirmado nulo
   // ── Grupo G — actualizado MD2 Jun 21 ──
   'Bélgica':            { formMult: 0.82, defMult: 0.95, w: 0.14 },  // 1-1 EGY (MD1) + 0-0 IRN (MD2 10men 66') — 0 goles en 2 MD; ATK en crisis; Courtois con 10 men = DEF elite confirmada
   'Egipto':             { formMult: 1.35, defMult: 0.92, w: 0.14 },  // 1-1 BEL (MD1) + 3-1 NZL (MD2) — Zico+Salah+Trezeguet; 1er WC victory historia; ATK confirmada; 2 goles concedidos en 2 MD
