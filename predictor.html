@@ -172,7 +172,7 @@
   <h1>⚽ MUNDIAL 2026 — <span>Predictor Matemático</span></h1>
   <div class="header-meta">
     Modelo v5.19: Poisson Bivariado + Dixon-Coles + Elo + GK Quality + Set-Pieces + Squad Depth + BlocBajo + PoorFormDamp<br>
-    Actualizado: <span id="update-date"></span> · 84 partidos fase de grupos · R32 iniciado
+    Actualizado: <span id="update-date"></span> · 84 partidos fase de grupos · 16 cruces R32 disponibles
   </div>
 </header>
 
@@ -578,6 +578,32 @@ const RESULTS = {
 // Partidos de hoy (fecha actual)
 const TODAY_MATCHES = ['Sudáfrica-Canadá'];  // Jun 28 — R32 Partido 1 · 15:00 CLT (19:00 UTC) · SoFi Stadium, Los Ángeles
 
+// Ronda de 32 — 16avos de Final
+const KO_MATCHES = [
+  // Jun 28
+  { home: 'Sudáfrica',       away: 'Canadá',             date: 'Jun 28' },
+  // Jun 29
+  { home: 'Brasil',          away: 'Japón',              date: 'Jun 29' },
+  { home: 'Alemania',        away: 'Paraguay',           date: 'Jun 29' },
+  { home: 'Países Bajos',    away: 'Marruecos',          date: 'Jun 29' },
+  // Jun 30
+  { home: 'Costa de Marfil', away: 'Noruega',            date: 'Jun 30' },
+  { home: 'Francia',         away: 'Suecia',             date: 'Jun 30' },
+  { home: 'México',          away: 'Ecuador',            date: 'Jun 30' },  // Estadio Azteca — ventaja local
+  // Jul 1
+  { home: 'Inglaterra',      away: 'Rep. Dem. Congo',    date: 'Jul 1'  },
+  { home: 'Bélgica',         away: 'Senegal',            date: 'Jul 1'  },
+  { home: 'EE.UU.',          away: 'Bosnia-Herzegovina', date: 'Jul 1'  },  // Levi's Stadium — ventaja local
+  // Jul 2
+  { home: 'España',          away: 'Austria',            date: 'Jul 2'  },
+  { home: 'Suiza',           away: 'Irán',               date: 'Jul 2'  },
+  { home: 'Portugal',        away: 'Croacia',            date: 'Jul 2'  },
+  // Jul 3
+  { home: 'Australia',       away: 'Egipto',             date: 'Jul 3'  },
+  { home: 'Argentina',       away: 'Cabo Verde',         date: 'Jul 3'  },
+  { home: 'Colombia',        away: 'Ghana',              date: 'Jul 3'  },
+];
+
 function getResult(home, away) {
   return RESULTS[`${home}-${away}`] || RESULTS[`${away}-${home}`] || null;
 }
@@ -664,8 +690,11 @@ function buildMatches(teams, md1, md2, md3) {
 // Se calcula automáticamente desde RESULTS + GROUPS.
 // ═══════════════════════════════════════════════════
 function parseMatchDay(dateStr) {
-  const m = (dateStr || '').match(/Jun\s+(\d+)/i);
-  return m ? parseInt(m[1]) : null;
+  const mJun = (dateStr || '').match(/Jun\s+(\d+)/i);
+  if (mJun) return parseInt(mJun[1]);
+  const mJul = (dateStr || '').match(/Jul\s+(\d+)/i);
+  if (mJul) return 30 + parseInt(mJul[1]);
+  return null;
 }
 
 function computeLastPlayed() {
@@ -1232,6 +1261,22 @@ function renderGroup(groupId) {
   </div>`;
 }
 
+function renderR32() {
+  const matchCards = KO_MATCHES.map(renderMatchCard).join('');
+  return `
+  <div class="group-panel" id="panel-r32">
+    <div class="group-header">
+      <h2>🏆 16avos de Final — Ronda de 32</h2>
+    </div>
+    <div class="matches-grid">
+      <div style="grid-column:1/-1;padding:8px 14px;background:rgba(255,180,0,0.10);border:1px solid rgba(255,180,0,0.30);border-radius:6px;font-size:12px;color:#ffb400;margin-bottom:4px">
+        ⚡ Eliminación directa: empate al 90' → Prórroga (2×15 min) + Penales. La probabilidad "Empate" refleja solo los 90 min reglamentarios.
+      </div>
+    </div>
+    <div class="matches-grid">${matchCards}</div>
+  </div>`;
+}
+
 // Polymarket tournament odds
 const POLYMARKET = [
   { team: 'España', flag: '🇪🇸', pct: '16.4' },
@@ -1282,6 +1327,19 @@ document.addEventListener('DOMContentLoaded', () => {
     // Panel
     contentEl.insertAdjacentHTML('beforeend', renderGroup(gId));
   });
+
+  // Tab "16avos"
+  const r32Tab = document.createElement('div');
+  r32Tab.className = 'tab';
+  r32Tab.textContent = '16avos';
+  r32Tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.group-panel').forEach(p => p.classList.remove('active'));
+    r32Tab.classList.add('active');
+    document.getElementById('panel-r32').classList.add('active');
+  });
+  tabsEl.appendChild(r32Tab);
+  contentEl.insertAdjacentHTML('beforeend', renderR32());
 });
 </script>
 </body>
