@@ -171,8 +171,8 @@
 <header>
   <h1>⚽ MUNDIAL 2026 — <span>Predictor Matemático</span></h1>
   <div class="header-meta">
-    Modelo v5.18: Poisson Bivariado + Dixon-Coles + Elo + GK Quality + Set-Pieces + Squad Depth + BlocBajo + PoorFormDamp<br>
-    Actualizado: <span id="update-date"></span> · 72 partidos fase de grupos
+    Modelo v5.19: Poisson Bivariado + Dixon-Coles + Elo + GK Quality + Set-Pieces + Squad Depth + BlocBajo + PoorFormDamp<br>
+    Actualizado: <span id="update-date"></span> · 84 partidos fase de grupos · R32 iniciado
   </div>
 </header>
 
@@ -558,10 +558,25 @@ const RESULTS = {
   // ── MD3 Grupo F — Jun 25 ──
   'Países Bajos-Túnez':          { a: 3, b: 1 },  // MD3 Grupo F | NED 1° (7pts, GD +6); TUN ELIMINADO 0pts (2GF, 12GA — peor DEF del torneo)
   'Japón-Suecia':                { a: 1, b: 1 },  // MD3 Grupo F | Maeda 56' (JAP); Elanga 62' (SWE) — JAP 2° (5pts); SWE avanza 3° mejor (4pts)
+  // ── MD3 Grupos G & H — Jun 26 ──
+  'Bélgica-Nueva Zelanda':      { a: 5, b: 1 },  // MD3 Grupo G | BEL CLASIF 1° (5pts GD+4) — ATK EXPLOSIÓN (0+0+5=6GF); NZL ELIMINADO 1pt; DEF BEL sólo 2GA torneo
+  'Irán-Egipto':                { a: 1, b: 1 },  // MD3 Grupo G | EGY CLASIF 2° (5pts GD+2); IRN ELIMINADO (3pts GD0); empate confirma standings
+  'España-Uruguay':             { a: 1, b: 0 },  // MD3 Grupo H | ESP CLASIF 1° (7pts GD+5, 0GA TORNEO); CPV 2° (3pts); URU ELIMINADO (2pts GD−1)
+  'Cabo Verde-Arabia Saudita':  { a: 0, b: 0 },  // MD3 Grupo H | CPV CLASIF 2° (3pts GD0); KSA ELIMINADO (2pts GD−3); segundo 0-0 de CPV en este WC
+  // ── MD3 Grupos I & J — Jun 26-27 ──
+  'Noruega-Francia':            { a: 4, b: 1 },  // MD3 Grupo I | UPSET: NOR 1° PERFECTA (9pts, 11GF 4GA); DEF FRA expuesta (4 concedidos); Haaland 5WC goles
+  'Senegal-Irak':               { a: 5, b: 0 },  // MD3 Grupo I | SEN EXPLOSIÓN ATK MD3 (1+2→5 goles); FRA 2° (6pts); IRQ 0pts 12GA ELIMINADO
+  'Argentina-Jordan':           { a: 2, b: 1 },  // MD3 Grupo J | ARG 1° PERFECTA (9pts, 7GF, 1GA); Lo Celso+Lautaro pen; JOR 0pts ELIMINADO; Tamari gol honor
+  'Argelia-Austria':            { a: 2, b: 2 },  // MD3 Grupo J | AUT CLASIF 2° (4pts GD0); ALG AVANZA 3° mejor (4pts GD−2, 4GF); empate clasifica ambos
+  // ── MD3 Grupos K & L — Jun 27 ──
+  'Portugal-Colombia':          { a: 0, b: 0 },  // MD3 Grupo K | COL CLASIF 1° (7pts GD+3); POR CLASIF 2° (5pts GD+5); CS ambos; ATK POR bloqueada vs calidad
+  'Rep. Dem. Congo-Uzbekistán': { a: 3, b: 1 },  // MD3 Grupo K | Wissa×2+Mayele (RDC); Shomurodov (UZB); RDC AVANZA 3° mejor (4pts GD+1); UZB 0pts ELIMINADO
+  'Panamá-Inglaterra':          { a: 0, b: 2 },  // MD3 Grupo L | Bellingham+Kane (ENG); ENG CLASIF 1° (7pts GD+4); PAN 0pts 0GF TORNEO ELIMINADO
+  'Croacia-Ghana':              { a: 2, b: 1 },  // MD3 Grupo L | Sučić 31'+Vlašić 83' (CRO); Luckassen 73' (GHA); CRO CLASIF 2° (6pts); GHA AVANZA 3° mejor (4pts GD0)
 };
 
 // Partidos de hoy (fecha actual)
-const TODAY_MATCHES = ['Bélgica-Nueva Zelanda', 'Egipto-Irán', 'España-Uruguay', 'Cabo Verde-Arabia Saudita'];  // Jun 26 MD3 Grupos G & H
+const TODAY_MATCHES = ['Sudáfrica-Canadá'];  // Jun 28 — R32 Partido 1 · 15:00 CLT (19:00 UTC) · SoFi Stadium, Los Ángeles
 
 function getResult(home, away) {
   return RESULTS[`${home}-${away}`] || RESULTS[`${away}-${home}`] || null;
@@ -815,36 +830,36 @@ const TOURNAMENT_FORM = {
   'Japón':              { formMult: 1.25, defMult: 0.90, w: 0.20 },  // 2-2 NED + 4-0 TUN + 1-1 SWE MD3 (Maeda 56') — 2° (5pts, 7GF 3GA); ATK constante en todos los MD; concedió Elanga 62' a SWE
   'Suecia':             { formMult: 0.82, defMult: 1.42, w: 0.20 },  // 5-1 TUN (outlier MD1) + 1-5 NED + 1-1 JAP MD3 (Elanga 62') — avanza 3° mejor (4pts, GD 0); ATK solo vs débiles; DEF mejoró MD3
   'Túnez':              { formMult: 0.25, defMult: 1.72, w: 0.20 },  // 1-5 SWE + 0-4 JAP + 1-3 NED MD3 — ELIMINADO 0pts (2GF, 12GA — peor DEF del torneo); formMult confirmado nulo
-  // ── Grupo G — actualizado MD2 Jun 21 ──
-  'Bélgica':            { formMult: 0.82, defMult: 0.95, w: 0.14 },  // 1-1 EGY (MD1) + 0-0 IRN (MD2 10men 66') — 0 goles en 2 MD; ATK en crisis; Courtois con 10 men = DEF elite confirmada
-  'Egipto':             { formMult: 1.35, defMult: 0.92, w: 0.14 },  // 1-1 BEL (MD1) + 3-1 NZL (MD2) — Zico+Salah+Trezeguet; 1er WC victory historia; ATK confirmada; 2 goles concedidos en 2 MD
-  'Irán':               { formMult: 0.92, defMult: 0.88, w: 0.14 },  // 2-2 NZL (MD1) + 0-0 BEL (MD2) — Beiranvand ÉLITE 7 saves vs BEL; Taremi gol anulado VAR; DEF bloque bajo confirmada
-  'Nueva Zelanda':      { formMult: 0.92, defMult: 1.22, w: 0.14 },  // 2-2 IRN (MD1 outlier Just) + 1-3 EGY (MD2) — MD1 era outlier; Surman 15' único positivo; ELIMINADO; concedió 3 vs EGY
-  // ── Grupo H — actualizado MD2 Jun 21 ──
-  'España':             { formMult: 1.22, defMult: 0.80, w: 0.14 },  // 0-0 CPV (MD1) + 4-0 KSA (MD2) — Yamal 10'+Oyarzabal×2+OG; ATK DESBLOQUEADA con Yamal titular; CS vs KSA
-  'Cabo Verde':         { formMult: 1.02, defMult: 0.85, w: 0.14 },  // 0-0 ESP (MD1) + 2-2 URU (MD2) — K.Pina FK+H.Varela sub ATK revelación; DEF sólida (2pts en 2 MD vs ESP+URU)
-  'Arabia Saudita':     { formMult: 0.78, defMult: 1.32, w: 0.14 },  // 1-1 URU (MD1) + 0-4 ESP (MD2) — bloque bajo vs débiles OK; vs calidad: 4 goles encajados; OG Altambakti; eliminación inminente
-  'Uruguay':            { formMult: 0.95, defMult: 1.18, w: 0.14 },  // 1-1 KSA (MD1) + 2-2 CPV (MD2) — ATK mejoró (Araújo+Canobbio); pero no pudo ganar vs minnow; DEF concedió 2 a CPV
-  // ── Grupo I — actualizado MD2 Jun 22 ──
-  'Francia':            { formMult: 1.42, defMult: 0.78, w: 0.14 },  // 3-1 SEN (MD1) + 3-0 IRQ (MD2) — Mbappé×4+Dembélé; 6 goles en 2 MD; CS Maignan MD2; 16 WC goals (= Klose RÉCORD)
-  'Senegal':            { formMult: 0.85, defMult: 1.45, w: 0.14 },  // 1-3 FRA + 2-3 NOR — Sarr×2 MD2 (ATK mejor que esperado); 0pts ELIMINADO; 6 goles concedidos en 2 MD
-  'Irak':               { formMult: 0.48, defMult: 1.72, w: 0.14 },  // 1-4 NOR (MD1) + 0-3 FRA (MD2) — 1 gol en 2 WC (consolación MD1); 7 concedidos; ELIMINADO
-  'Noruega':            { formMult: 1.45, defMult: 1.02, w: 0.14 },  // 4-1 IRQ (MD1) + 3-2 SEN (MD2) — Haaland 48'+58'; 7 goles en 2 MD; DEF concedió 2 a Senegal = no impenetrable; NOR clasifica
-  // ── Grupo J — actualizado MD2 Jun 22 ──
-  'Argentina':          { formMult: 1.52, defMult: 0.65, w: 0.14 },  // 3-0 ALG (MD1) + 2-0 AUT (MD2) — Messi 5 goles (18 WC RÉCORD histórico); CS en AMBOS MD; dominancia ATK+DEF absoluta
-  'Argelia':            { formMult: 0.80, defMult: 1.25, w: 0.14 },  // 0-3 ARG (MD1) + 2-1 JOR (MD2) — remontada desde 0-1; Benbouali+Gouiri córneres; 3pts viva; depende de set pieces
-  'Austria':            { formMult: 0.98, defMult: 1.12, w: 0.14 },  // 3-1 JOR (MD1, fácil Elo-1648) + 0-2 ARG (MD2) — 0 goles vs calidad; forma real vs rivales serios = desconocida
-  'Jordan':             { formMult: 0.72, defMult: 1.35, w: 0.14 },  // 1-3 AUT (MD1) + 1-2 ALG (MD2) — 2 goles en 2 MD; 5 concedidos; 0pts ELIMINADO
-  // ── Grupo K — actualizado MD2 Jun 23 ──
-  'Portugal':           { formMult: 1.45, defMult: 0.88, w: 0.14 },  // 1-1 RDC (MD1) + 5-0 UZB (MD2) — Ronaldo 6'+39' (RÉCORD 6 WC); NunoMendes 17'+OG+Leão; ATK DESBLOQUEADA; CS MD2; crisis MD1 totalmente resuelta
-  'Rep. Dem. Congo':    { formMult: 0.88, defMult: 0.95, w: 0.14 },  // 1-1 POR (MD1) + 0-1 COL (MD2) — 0 goles MD2; bloque bajo vs favoritos confirmado; solo 2 goles concedidos en 2 MD; ELIMINADO 0pts
-  'Uzbekistán':         { formMult: 0.38, defMult: 1.92, w: 0.14 },  // 1-3 COL (MD1) + 0-5 POR (MD2) — 1 gol en 2 WC (consolación MD1); 8 goles concedidos; ATK nula; ELIMINADO
-  'Colombia':           { formMult: 1.25, defMult: 0.92, w: 0.14 },  // 3-1 UZB (MD1) + 1-0 RDC (MD2) — 4 goles en 2 MD; CS vs RDC; COL clasifica 1°; DEF mejoró significativamente MD2
-  // ── Grupo L — actualizado MD2 Jun 23 ──
-  'Inglaterra':         { formMult: 0.82, defMult: 0.85, w: 0.14 },  // 4-2 CRO (MD1) + 0-0 GHA (MD2) — 19 tiros vs GHA, O'Reilly poste 86'; 0 goles; ATK bloqueada por bloque bajo; CS MD2 = DEF mejoró; inconsistencia ATK confirmada
-  'Croacia':            { formMult: 1.05, defMult: 0.92, w: 0.14 },  // 2-4 ENG (MD1) + 1-0 PAN (MD2) — Budimir 54' sub (tap-in); Livaković CS; DEF mejoró enormemente (4→0 concedidos); 3pts viva para MD3
-  'Ghana':              { formMult: 0.65, defMult: 0.72, w: 0.14 },  // 1-0 PAN (MD1) + 0-0 ENG (MD2) — 0 goles MD2; crisis ATK sin Kudus ❌ confirmada; DEF ÉLITE (CS en ambos MD; Konsa clave 79'); 4pts
-  'Panamá':             { formMult: 0.68, defMult: 1.32, w: 0.14 },  // 0-1 GHA (MD1) + 0-1 CRO (MD2) — 0 goles en 2 WC; ELIMINADO 0pts; posesión sin definición; 2 goles concedidos en 2 MD
+  // ── Grupo G — actualizado MD3 Jun 26 (w:0.20) ──
+  'Bélgica':            { formMult: 1.35, defMult: 0.80, w: 0.20 },  // 5-1 NZL MD3 — ATK EXPLOSIÓN (0+0+5=6GF total); CLASIF 1° (5pts GD+4); sólo 2GA en todo el torneo
+  'Egipto':             { formMult: 1.25, defMult: 0.92, w: 0.20 },  // 3-1 NZL + 1-1 IRN MD3 — CLASIF 2° (5pts GD+2); 5GF 3GA; ATK consistente; Salah referencia en las 3 MD
+  'Irán':               { formMult: 0.80, defMult: 0.90, w: 0.20 },  // 0-0 BEL + 1-1 EGY MD3 — ELIMINADO (3pts GD0); 3GF en 3 MD; bloque bajo confirmado; Beiranvand élite
+  'Nueva Zelanda':      { formMult: 0.72, defMult: 1.52, w: 0.20 },  // 1-5 BEL MD3 — ELIMINADO 1pt; DEF colapso total MD3 (5 concedidos); outlier Just MD1 no se repitió
+  // ── Grupo H — actualizado MD3 Jun 26 (w:0.20) ──
+  'España':             { formMult: 1.28, defMult: 0.72, w: 0.20 },  // 0-0 CPV + 4-0 KSA + 1-0 URU MD3 — CLASIF 1° (7pts, 5GF, 0GA TORNEO); DEF ÉLITE ABSOLUTA; Yamal inamovible titular
+  'Cabo Verde':         { formMult: 0.78, defMult: 0.88, w: 0.20 },  // 0-0 ESP + 2-2 URU + 0-0 KSA MD3 — CLASIF 2° (3pts GD0); 0 goles MD3; ATK solo vs URU; bloque bajo efectivo
+  'Arabia Saudita':     { formMult: 0.62, defMult: 1.52, w: 0.20 },  // 1-1 URU + 0-4 ESP + 0-0 CPV MD3 — ELIMINADO (2pts GD−3); 1GF 5GA; ATK nula vs cualquier calidad
+  'Uruguay':            { formMult: 0.80, defMult: 1.12, w: 0.20 },  // 1-1 KSA + 2-2 CPV + 0-1 ESP MD3 — ELIMINADO (2pts GD−1); 0 goles MD3; Bielsa no pudo desbloquear vs calidad
+  // ── Grupo I — actualizado MD3 Jun 26 (w:0.20) ──
+  'Noruega':            { formMult: 1.62, defMult: 0.98, w: 0.20 },  // 4-1 IRQ + 3-2 SEN + 4-1 FRA MD3 — 1° PERFECTA (9pts, 11GF 4GA); ATK ÉLITE ABSOLUTA WC; Haaland 5 goles en 3 MD
+  'Francia':            { formMult: 1.22, defMult: 1.05, w: 0.20 },  // 3-1 SEN + 3-0 IRQ + 1-4 NOR MD3 — CLASIF 2° (6pts); DEF EXPUESTA MD3 (4 concedidos); Mbappé sigue siendo referencia ATK
+  'Senegal':            { formMult: 1.32, defMult: 1.38, w: 0.20 },  // 1-3 FRA + 2-3 NOR + 5-0 IRQ MD3 — ELIMINADO 3° no clasifica (3pts GD+2); ATK REVELACIÓN MD3; DEF sigue siendo débil
+  'Irak':               { formMult: 0.32, defMult: 2.05, w: 0.20 },  // 1-4 NOR + 0-3 FRA + 0-5 SEN MD3 — 0pts ELIMINADO; 1GF 12GA (peor DEF tras Túnez); ATK inexistente en 3 MD
+  // ── Grupo J — actualizado MD3 Jun 27 (w:0.20) ──
+  'Argentina':          { formMult: 1.52, defMult: 0.68, w: 0.20 },  // 3-0 ALG + 2-0 AUT + 2-1 JOR MD3 — 1° PERFECTA (9pts, 7GF, 1GA primer gol concedido); Messi HISTÓRICO WC
+  'Austria':            { formMult: 0.98, defMult: 1.15, w: 0.20 },  // 3-1 JOR + 0-2 ARG + 2-2 ALG MD3 — CLASIF 2° (4pts GD0); ATK real solo vs minnow; 5GA en 3 MD
+  'Argelia':            { formMult: 0.88, defMult: 1.45, w: 0.20 },  // 0-3 ARG + 2-1 JOR + 2-2 AUT MD3 — AVANZA 3° mejor (4pts GD−2, 4GF); set pieces única ATK; DEF frágil
+  'Jordan':             { formMult: 0.65, defMult: 1.55, w: 0.20 },  // 1-3 AUT + 1-2 ALG + 1-2 ARG MD3 — 0pts ELIMINADO; 3GF 7GA; Tamari único jugador destacado
+  // ── Grupo K — actualizado MD3 Jun 27 (w:0.20) ──
+  'Colombia':           { formMult: 1.12, defMult: 0.78, w: 0.20 },  // 3-1 UZB + 1-0 RDC + 0-0 POR MD3 — CLASIF 1° (7pts, 4GF, 1GA); DEF ÉLITE TORNEO; ATK contenida vs calidad MD3
+  'Portugal':           { formMult: 1.35, defMult: 0.75, w: 0.20 },  // 1-1 RDC + 5-0 UZB + 0-0 COL MD3 — CLASIF 2° (5pts, 6GF, 1GA); DEF ÉLITE; Ronaldo RÉCORD 6 WC; ATK bloqueada por calidad
+  'Rep. Dem. Congo':    { formMult: 1.05, defMult: 0.95, w: 0.20 },  // 1-1 POR + 0-1 COL + 3-1 UZB MD3 (Wissa×2+Mayele) — AVANZA 3° mejor (4pts GD+1); ATK activada en MD3
+  'Uzbekistán':         { formMult: 0.40, defMult: 2.18, w: 0.20 },  // 1-3 COL + 0-5 POR + 1-3 RDC MD3 — 0pts ELIMINADO; 2GF 11GA; DEF catastrófica; Shomurodov único scorer
+  // ── Grupo L — actualizado MD3 Jun 27 (w:0.20) ──
+  'Inglaterra':         { formMult: 1.12, defMult: 0.80, w: 0.20 },  // 4-2 CRO + 0-0 GHA + 2-0 PAN MD3 (Bellingham+Kane) — CLASIF 1° (7pts, 6GF, 2GA); ATK DESBLOQUEADA MD3; DEF consistente
+  'Croacia':            { formMult: 1.08, defMult: 1.02, w: 0.20 },  // 2-4 ENG + 1-0 PAN + 2-1 GHA MD3 (Sučić 31'+Vlašić 83') — CLASIF 2° (6pts); constante; 5GA (4 vs ENG MD1)
+  'Ghana':              { formMult: 0.68, defMult: 0.82, w: 0.20 },  // 1-0 PAN + 0-0 ENG + 1-2 CRO MD3 (Luckassen 73') — AVANZA 3° mejor (4pts GD0); DEF sólida MD1+MD2; 2GA sólo MD3
+  'Panamá':             { formMult: 0.45, defMult: 1.52, w: 0.20 },  // 0-1 GHA + 0-1 CRO + 0-2 ENG MD3 — 0pts ELIMINADO; 0GF en 3 WC RÉCORD HISTÓRICO; 4GA total
 };
 
 // ═══════════════════════════════════════════════════
