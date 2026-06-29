@@ -41,10 +41,8 @@ function getMatchMinute(comp: any, state: string): string | null {
   const displayClock: string = comp.status.displayClock || '';
 
   // During stoppage time ESPN freezes `clock` at 2700/5400s but `displayClock` shows "45'+3'" or "90'+8'"
-  // During regular play use clock/60 (more stable than displayClock string)
   let minuteStr: string;
   if (displayClock.includes('+')) {
-    // Stoppage: "45'+3'" → strip all apostrophes → "45+3" → append "'" → "45+3'"
     minuteStr = displayClock.replace(/'/g, '') + "'";
   } else {
     minuteStr = `${Math.floor((comp.status.clock || 0) / 60)}'`;
@@ -53,6 +51,36 @@ function getMatchMinute(comp: any, state: string): string | null {
   if (period >= 3) return `Prórroga · ${minuteStr}`;
   if (period === 2) return `2T · ${minuteStr}`;
   return `1T · ${minuteStr}`;
+}
+
+// Returns the 90-minute score only (periods 1+2), ignoring ET goals.
+// When period <= 2 the accumulated score IS the 90-min score, so we use it directly.
+// When period >= 3 (ET or penalties) we sum linescores[0]+linescores[1] per competitor.
+function get90MinScore(comp: any, home: any, away: any): { homeScore: number; awayScore: number } {
+  const period: number = comp.status.period || 1;
+
+  if (period <= 2) {
+    return {
+      homeScore: parseInt(home?.score ?? "0") || 0,
+      awayScore: parseInt(away?.score ?? "0") || 0,
+    };
+  }
+
+  // Match is in or past ET — extract only first two periods from linescores
+  const homeLS: any[] = home?.linescores || [];
+  const awayLS: any[] = away?.linescores || [];
+
+  if (homeLS.length >= 2 && awayLS.length >= 2) {
+    const h90 = (Number(homeLS[0]?.value) || 0) + (Number(homeLS[1]?.value) || 0);
+    const a90 = (Number(awayLS[0]?.value) || 0) + (Number(awayLS[1]?.value) || 0);
+    return { homeScore: h90, awayScore: a90 };
+  }
+
+  // Fallback: linescores not available — use accumulated score (may include ET goals)
+  return {
+    homeScore: parseInt(home?.score ?? "0") || 0,
+    awayScore: parseInt(away?.score ?? "0") || 0,
+  };
 }
 
 // ESPN English team name → DB Spanish name
@@ -119,8 +147,9 @@ async function syncScores() {
     const espnAway: string = away?.team?.displayName || away?.team?.name || '';
 
     const isFinished = state === "post";
-    const homeScore = parseInt(home?.score ?? "0") || 0;
-    const awayScore = parseInt(away?.score ?? "0") || 0;
+
+    // Use 90-min score only (ET goals excluded)
+    const { homeScore, awayScore } = get90MinScore(comp, home, away);
     const matchMinute = getMatchMinute(comp, state);
 
     // Lookup: exact by date → if multiple, disambiguate by team name → fuzzy window fallback
@@ -135,7 +164,6 @@ async function syncScores() {
       if (exactResult.data.length === 1) {
         dbMatch = exactResult.data[0];
       } else if (exactResult.data.length > 1) {
-        // Concurrent matches — disambiguate by team name
         dbMatch = pickFromCandidates(exactResult.data, espnHome, espnAway);
         if (dbMatch) errors.push(`multiMatch: ${event.name} -> ${dbMatch.home_team} vs ${dbMatch.away_team}`);
       }
